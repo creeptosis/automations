@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+heroes_cache.json
+*.part
+replay_names.json

@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dota 2 Replay Tool</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c232c; --line:#2a3340;
+    --txt:#d7dde5; --dim:#8a97a6; --accent:#e23b3b; --accent2:#4a9eff;
+    --ok:#3fb950; --warn:#d29922; --err:#f85149;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.45 "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt)}
+  header{padding:14px 20px;background:linear-gradient(90deg,#1a1010,#161b22);border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0;letter-spacing:.5px}
+  header h1 b{color:var(--accent)}
+  header .meta{font-size:12px;color:var(--dim)}
+  header .meta code{color:var(--accent2)}
+  .navbtns{margin-left:auto;align-self:center;display:flex;align-items:center;gap:10px}
+  #launchDota{display:inline-flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--accent);border-radius:6px;padding:6px 12px;cursor:pointer}
+  #launchDota:hover{border-color:var(--accent2);filter:brightness(1.15)}
+  #launchDota img{height:18px;width:auto;display:block}
+  #launchDota .play{color:var(--accent);font-size:11px}
+  .tabs{display:flex;gap:2px;padding:0 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+  .tab{padding:11px 18px;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;user-select:none}
+  .tab:hover{color:var(--txt)}
+  .tab.active{color:var(--txt);border-bottom-color:var(--accent)}
+  .tab .badge{display:inline-block;min-width:18px;text-align:center;background:var(--accent);color:#fff;border-radius:9px;font-size:11px;padding:0 5px;margin-left:6px}
+  main{padding:20px;max-width:none;margin:0 auto}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:18px}
+  .modes{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .modes button{background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:8px 14px;cursor:pointer}
+  .modes button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .form{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:12px;color:var(--dim)}
+  select,input[type=number],input[type=text],textarea{background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:8px}
+  select{min-width:170px}
+  input[type=number]{width:90px}
+  .ac{position:relative}
+  .ac input{min-width:200px}
+  .ac-list{position:absolute;z-index:50;left:0;right:0;top:calc(100% + 2px);background:var(--panel2);border:1px solid var(--line);border-radius:6px;max-height:260px;overflow:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .ac-list div{padding:7px 10px;cursor:pointer;white-space:nowrap}
+  .ac-list div:hover,.ac-list div.active{background:var(--accent);color:#fff}
+  textarea{width:100%;min-height:130px;font-family:Consolas,monospace;font-size:13px}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--dim)}
+  button.go{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:9px 20px;cursor:pointer;font-weight:600}
+  button.go:hover{filter:brightness(1.1)}
+  button.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:8px 14px;cursor:pointer}
+  button.sec:hover{border-color:var(--accent2)}
+  .hint{font-size:12px;color:var(--dim);margin-top:10px}
+  .bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--dim);font-weight:600;position:sticky;top:0;background:var(--panel)}
+  th.sortable{cursor:pointer;user-select:none}
+  th.sortable:hover{color:var(--txt)}
+  th .arr{color:var(--accent2);font-size:11px;margin-left:3px}
+  .tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;border:1px solid var(--line);color:var(--dim)}
+  tr:hover td{background:var(--panel2)}
+  td a{color:var(--accent2);text-decoration:none}
+  td a:hover{text-decoration:underline}
+  .win{color:var(--ok)} .loss{color:var(--err)}
+  .sub td{background:#11151b}
+  .player-row td{border-top:2px solid var(--line)}
+  .player-row{cursor:pointer}
+  .status{font-size:13px;margin:8px 0;min-height:18px}
+  .status.err{color:var(--err)} .status.ok{color:var(--ok)}
+  .prog{height:8px;background:var(--bg);border:1px solid var(--line);border-radius:5px;overflow:hidden;width:180px;display:inline-block;vertical-align:middle}
+  .prog>div{height:100%;background:var(--accent2);width:0}
+  .pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;border:1px solid var(--line)}
+  .pill.done{color:var(--ok);border-color:var(--ok)}
+  .pill.error{color:var(--err);border-color:var(--err)}
+  .pill.parsing{color:var(--warn);border-color:var(--warn)}
+  .pill.downloading,.pill.resolving,.pill.queued{color:var(--accent2);border-color:var(--accent2)}
+  .pill.cancelled{color:var(--dim);border-color:var(--dim)}
+  .empty{color:var(--dim);padding:20px;text-align:center}
+  .scroll{max-height:62vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
+  .right{margin-left:auto}
+  .opt{font-size:11px;color:var(--accent2);margin-left:4px}
+  /* layout + history sidebar */
+  .layout{display:flex;align-items:stretch}
+  #sidebar{flex:0 0 250px;width:250px;border-right:1px solid var(--line);background:var(--panel);padding:14px 12px;max-height:calc(100vh - 53px);overflow:auto}
+  .content{flex:1;min-width:0}
+  .side-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:10px}
+  .linkbtn{background:none;border:none;color:var(--accent2);cursor:pointer;font-size:12px;padding:0}
+  .linkbtn:hover{text-decoration:underline}
+  .iconbtn{background:none;border:none;color:var(--accent2);cursor:pointer;padding:4px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;line-height:0;vertical-align:middle}
+  .iconbtn:hover{background:var(--line);filter:brightness(1.2)}
+  .iconbtn svg{display:block;width:15px;height:15px}
+  .cancel-dl{color:var(--warn)}   /* stop in progress: amber */
+  .retry-dl{color:var(--ok)}      /* recover: green */
+  .del-replay{color:var(--err)}   /* destructive: red */
+  #syncBadge{font-size:11px;padding:1px 8px;border-radius:10px;border:1px solid var(--line);color:var(--dim)}
+  #syncBadge.ok{color:var(--ok);border-color:var(--ok)}
+  #syncBadge.warn{color:var(--warn);border-color:var(--warn)}
+  .hist-item{position:relative;padding:8px 9px;border:1px solid var(--line);border-radius:6px;margin-bottom:8px;cursor:pointer;background:var(--bg)}
+  .hist-item:hover{border-color:var(--accent2)}
+  .hist-item .h-label{font-size:13px;color:var(--txt);white-space:normal;padding-right:14px}
+  .hist-item .h-meta{font-size:11px;color:var(--dim);margin-top:4px;display:flex;justify-content:space-between;gap:8px}
+  .hist-item .h-del{position:absolute;top:5px;right:7px;color:var(--dim);font-size:14px;line-height:1}
+  .hist-item .h-del:hover{color:var(--err)}
+  /* rank medals */
+  .rkcell{display:inline-flex;align-items:center;gap:7px}
+  .rkmedal{position:relative;display:inline-block;width:34px;height:34px;flex:0 0 auto;vertical-align:middle}
+  .rkmedal .rkicon,.rkmedal .rkstar{position:absolute;left:0;top:0;width:34px;height:34px}
+  .rkmedal .rklb{position:absolute;left:0;right:0;bottom:-3px;text-align:center;font-size:9px;font-weight:700;color:#ffd96b;text-shadow:0 1px 2px #000}
+  .rkname{color:var(--txt)}
+  .rktxt{color:var(--dim);font-size:12px}
+  .pcell{white-space:nowrap}
+</style>
+</head>
+<body>
+<header>
+  <h1><b>DOTA 2</b> Replay Tool</h1>
+  <span class="meta">Replays: <code id="cfgDir">…</code> · API key: <code id="cfgKey">…</code> · <span id="syncBadge"></span></span>
+  <div class="navbtns">
+    <button id="launchDota" title="Launch Dota 2 via Steam"><span class="play">▶</span><img src="/dota.png" alt="Dota 2"></button>
+  </div>
+</header>
+
+<div class="layout">
+<aside id="sidebar">
+  <div class="side-head"><span>Recent searches</span><button class="linkbtn" id="histClear">clear all</button></div>
+  <div id="histList"></div>
+</aside>
+<div class="content">
+
+<div class="tabs">
+  <div class="tab active" data-tab="search">Search &amp; Download</div>
+  <div class="tab" data-tab="replays">My Replays</div>
+  <div class="tab" data-tab="downloads">Downloads <span class="badge" id="dlBadge" style="display:none">0</span></div>
+</div>
+
+<main>
+  <!-- ============ SEARCH ============ -->
+  <section id="tab-search">
+    <div class="panel">
+      <div class="modes" id="modes">
+        <button data-mode="notable" class="active">Notable players by hero</button>
+        <button data-mode="matchup">Mid matchup</button>
+        <button data-mode="raw">Raw SQL</button>
+      </div>
+
+      <!-- notable -->
+      <div class="form modeform" data-form="notable">
+        <div class="field"><label>Hero</label><div class="ac"><input type="text" class="hero" id="n_hero" placeholder="type a hero…" autocomplete="off"><div class="ac-list"></div></div></div>
+        <div class="field"><label>Enemy hero <span class="opt">filter ▸ optional</span></label><div class="ac"><input type="text" class="hero" id="n_vs" placeholder="any — or type a hero…" autocomplete="off"><div class="ac-list"></div></div></div>
+        <div class="field"><label>Enemy lane <span class="opt">filter ▸ optional</span></label><select id="n_vs_lane"></select></div>
+        <div class="field"><label>Last (months)</label><input type="number" id="n_months" value="1" min="1" max="60"></div>
+        <div class="field"><label>Min games</label><input type="number" id="n_min" value="5" min="1"></div>
+        <div class="field"><label>Limit</label><input type="number" id="n_limit" value="100" min="1" max="500"></div>
+        <button class="go" data-run="notable">Search</button>
+      </div>
+
+      <!-- matchup -->
+      <div class="form modeform" data-form="matchup" style="display:none">
+        <div class="field"><label>Hero A (e.g. your mid)</label><div class="ac"><input type="text" class="hero" id="m_a" placeholder="type a hero…" autocomplete="off"><div class="ac-list"></div></div></div>
+        <button class="sec" id="m_swap" title="swap">⇄</button>
+        <div class="field"><label>Hero B (enemy mid)</label><div class="ac"><input type="text" class="hero" id="m_b" placeholder="type a hero…" autocomplete="off"><div class="ac-list"></div></div></div>
+        <div class="field"><label>Last (months)</label><input type="number" id="m_months" value="1" min="1" max="120"></div>
+        <div class="field"><label>Limit</label><input type="number" id="m_limit" value="100" min="1" max="200"></div>
+        <div class="field"><label>&nbsp;</label><span class="chk"><input type="checkbox" id="m_mid" checked> require both mid</span></div>
+        <div class="field"><label>&nbsp;</label><span class="chk"><input type="checkbox" id="m_immortal" checked> both mids Immortal</span></div>
+        <button class="go" data-run="matchup">Search</button>
+      </div>
+
+      <!-- raw -->
+      <div class="modeform" data-form="raw" style="display:none">
+        <textarea id="r_sql"></textarea>
+        <div class="bar"><button class="go" data-run="raw">Run SQL</button>
+          <span class="hint">Runs against OpenDota's explorer. Any result column named <code>match_id</code> becomes downloadable.</span></div>
+      </div>
+
+      <div class="hint" id="modeHint"></div>
+    </div>
+
+    <div class="panel">
+      <div class="bar">
+        <button class="sec" id="selAll">Select all</button>
+        <button class="sec" id="selNone">Clear</button>
+        <button class="go" id="dlSel">Download selected (<span id="selCount">0</span>)</button>
+        <span class="status" id="searchStatus"></span>
+      </div>
+      <div class="scroll"><div id="results"><div class="empty">Run a search to see matches.</div></div></div>
+      <details style="margin-top:10px"><summary class="hint">show SQL</summary><pre id="sqlOut" style="white-space:pre-wrap;color:var(--dim);font-size:12px"></pre></details>
+    </div>
+  </section>
+
+  <!-- ============ REPLAYS ============ -->
+  <section id="tab-replays" style="display:none">
+    <div class="panel">
+      <div class="bar"><button class="sec" id="refreshReplays">Refresh</button>
+        <button class="sec" id="repSelAll">Select all</button>
+        <button class="sec" id="repSelNone">Clear</button>
+        <button class="go" id="repDelSel">Delete selected (<span id="repSelCount">0</span>)</button>
+        <span class="status" id="replaysStatus"></span></div>
+      <div class="scroll"><div id="replayList"><div class="empty">Loading…</div></div></div>
+    </div>
+  </section>
+
+  <!-- ============ DOWNLOADS ============ -->
+  <section id="tab-downloads" style="display:none">
+    <div class="panel">
+      <div class="bar"><button class="sec" id="clearDone">Clear finished</button>
+        <span class="hint">Streams the .bz2 replay, decompresses to .dem in your replay folder. Auto-refreshing.</span></div>
+      <div class="scroll"><div id="dlList"><div class="empty">No downloads yet.</div></div></div>
+    </div>
+  </section>
+</main>
+</div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+let HEROES = [];
+let currentMode = "notable"; // mode whose FORM is visible (changes when you click a mode button)
+let resultsMode = null;      // mode that produced the rendered table — pinned so switching forms can't re-render it wrong
+let lastRows = [];           // raw result rows from the last search
+let viewRows = [];           // rows after client-side sort — what's actually rendered
+let lastParams = {};         // params behind the current result set (for re-render wiring)
+let sortState = { col:null, dir:1 };  // active client-side sort (dir 1 asc / -1 desc)
+const selected = new Set();  // match_ids checked for download
+const collapsedPlayers = new Set();  // notable: account_ids whose game list is collapsed (persists across re-sort)
+
+const STORM = 17, SNIPER = 35; // sensible matchup defaults
+// enemy-lane options map to OpenDota lane_role (0 = any)
+const LANES = [{v:0,n:"Any lane"},{v:1,n:"Safe"},{v:2,n:"Mid"},{v:3,n:"Off"},{v:4,n:"Jungle"}];
+
+async function api(path, opts){
+  const r = await fetch(path, opts);
+  let j = null; try{ j = await r.json(); }catch(e){}
+  if(!r.ok) throw new Error((j && j.error) || ("HTTP "+r.status));
+  return j;
+}
+
+// ---------- init ----------
+(async function init(){
+  const cfg = await api("/api/config");
+  $("#cfgDir").textContent = cfg.replay_dir;
+  $("#cfgKey").textContent = cfg.has_api_key ? "set" : "free (rate-limited)";
+  const sb = $("#syncBadge");
+  if(cfg.dota_sync){ sb.textContent = "name-sync on"; sb.className = "ok"; }
+  else { sb.textContent = "name-sync off - restart server"; sb.className = "warn"; }
+  try{
+    HEROES = await api("/api/heroes");
+  }catch(e){ HEROES = []; }
+  $$(".hero").forEach(makeAutocomplete);
+  setHero($("#m_a"), STORM); setHero($("#m_b"), SNIPER); // matchup defaults
+  $("#r_sql").value = sampleSQL();
+  setMode("notable");
+  renderHistory();
+  loadReplays();
+  pollDownloads();
+  setInterval(pollDownloads, 1500);
+})();
+
+function sampleSQL(){
+  return `-- Example: notable players on Storm Spirit (hero_id 17), last 3 months
+SELECT np.name, np.team_name, pm.account_id,
+  COUNT(*) AS hero_games,
+  SUM(CASE WHEN (pm.player_slot < 128) = m.radiant_win THEN 1 ELSE 0 END) AS wins,
+  MAX(m.match_id) AS match_id
+FROM notable_players np
+JOIN player_matches pm ON pm.account_id = np.account_id
+JOIN matches m ON m.match_id = pm.match_id
+WHERE pm.hero_id = 17
+  AND m.start_time > extract(epoch FROM now() - interval '3 months')
+GROUP BY np.name, np.team_name, pm.account_id
+HAVING COUNT(*) >= 5
+ORDER BY wins DESC
+LIMIT 30;`;
+}
+
+// ---------- tabs ----------
+$$(".tab").forEach(t=>t.onclick=()=>{
+  $$(".tab").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active");
+  const id = t.dataset.tab;
+  $$("main > section").forEach(s=>s.style.display="none");
+  $("#tab-"+id).style.display="";
+  if(id==="replays") loadReplays();
+});
+
+// ---------- hero autocomplete ----------
+function setHero(input, id){ const h=HEROES.find(x=>x.id===id); if(h){ input.value=h.name; input.dataset.heroId=id; } }
+function heroId(input){
+  if(input.dataset.heroId) return +input.dataset.heroId;
+  const q=(input.value||"").trim().toLowerCase();
+  if(!q) return 0;
+  let m = HEROES.find(h=>h.name.toLowerCase()===q);
+  if(!m){ const subs=HEROES.filter(h=>h.name.toLowerCase().includes(q)); if(subs.length===1) m=subs[0]; }
+  if(m){ input.dataset.heroId=m.id; return m.id; }
+  return 0;
+}
+function makeAutocomplete(input){
+  const list = input.parentElement.querySelector(".ac-list");
+  let items=[], active=-1;
+  function render(q){
+    const ql=(q||"").trim().toLowerCase();
+    items = (ql? HEROES.filter(h=>h.name.toLowerCase().includes(ql)) : HEROES).slice(0,12);
+    list.innerHTML = items.map((h,i)=>`<div data-i="${i}">${escapeHtml(h.name)}</div>`).join("");
+    list.style.display = items.length? "block":"none";
+    active=-1;
+    [...list.children].forEach(c=>c.onmousedown=e=>{ e.preventDefault(); pick(+c.dataset.i); });
+  }
+  function pick(i){ const h=items[i]; if(!h) return; input.value=h.name; input.dataset.heroId=h.id; list.style.display="none"; }
+  input.addEventListener("input", ()=>{ input.dataset.heroId=""; render(input.value); });
+  input.addEventListener("focus", ()=>render(input.value));
+  input.addEventListener("keydown", e=>{
+    if(list.style.display==="none") return;
+    if(e.key==="ArrowDown") active=Math.min(active+1, items.length-1);
+    else if(e.key==="ArrowUp") active=Math.max(active-1, 0);
+    else if(e.key==="Enter"){ if(active>=0){ pick(active); e.preventDefault(); } else if(items.length===1){ pick(0); e.preventDefault(); } return; }
+    else if(e.key==="Escape"){ list.style.display="none"; return; }
+    else return;
+    [...list.children].forEach((c,i)=>c.classList.toggle("active", i===active));
+    e.preventDefault();
+  });
+  input.addEventListener("blur", ()=>setTimeout(()=>list.style.display="none", 120));
+}
+
+// ---------- modes ----------
+$$("#modes button").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+function setMode(mode){
+  currentMode = mode;
+  $$("#modes button").forEach(b=>b.classList.toggle("active", b.dataset.mode===mode));
+  $$(".modeform").forEach(f=>f.style.display = f.dataset.form===mode ? (mode==="raw"?"block":"flex") : "none");
+  const hints = {
+    notable: "Pro / notable players with the most games on a hero, ranked by win rate; the rank column shows their current ladder rank (e.g. Immortal #2). Each player's matches are listed beneath them — tick checkboxes (or the row's “all” box) and hit Download. Optionally filter to games where they faced an Enemy hero, in any lane or a specific one (e.g. Sniper · Mid).",
+    matchup: "Games where both heroes were mid on opposing teams: high-rank public games (avg ≥ Divine 5 — OpenDota caps avg rank there) plus pro/parsed games (no avg recorded). “A result” is Win/Loss from hero A’s side — the hero you’re studying. Player columns show each mid’s rank medal + name; Immortals get a distinct icon for top-10 / top-100 / ladder, with their ladder number on the badge. avg rank shows a Divine 5 medal for ranked pubs and “–” for pro games — judge those by the players’ own medals.",
+    raw: "Power user: write any PostgreSQL the OpenDota explorer accepts."
+  };
+  $("#modeHint").textContent = hints[mode] || "";
+}
+$("#m_swap").onclick = ()=>{
+  const a=$("#m_a"), b=$("#m_b");
+  const av=a.value, ai=a.dataset.heroId, bv=b.value, bi=b.dataset.heroId;
+  a.value=bv; a.dataset.heroId=bi; b.value=av; b.dataset.heroId=ai;
+};
+// "both mids Immortal" is a client-side view filter — re-render instantly, no re-search
+$("#m_immortal").onchange = ()=>{ if(resultsMode==="matchup") refreshView(); };
+
+// ---------- search ----------
+$$("[data-run]").forEach(b=>b.onclick=()=>runSearch(b.dataset.run));
+
+// populate the Notable enemy-lane dropdown (lane_role values)
+$("#n_vs_lane").innerHTML = LANES.map(l=>`<option value="${l.v}">${escapeHtml(l.n)}</option>`).join("");
+
+function gatherParams(mode){
+  if(mode==="notable") return {mode, hero:heroId($("#n_hero")), vs_hero:heroId($("#n_vs")), vs_lane:+$("#n_vs_lane").value, months:+$("#n_months").value, min_games:+$("#n_min").value, limit:+$("#n_limit").value};
+  if(mode==="matchup") return {mode, heroA:heroId($("#m_a")), heroB:heroId($("#m_b")), months:+$("#m_months").value, limit:+$("#m_limit").value, require_mid:$("#m_mid").checked, min_tier:75};
+  if(mode==="raw") return {mode, sql:$("#r_sql").value};
+}
+function missingHero(p, mode){
+  if(mode==="notable") return !p.hero;
+  if(mode==="matchup") return !p.heroA || !p.heroB;
+  return false;
+}
+
+async function runSearch(mode){
+  const st = $("#searchStatus");
+  const params = gatherParams(mode);
+  if(missingHero(params, mode)){ st.className="status err"; st.textContent="Pick a hero from the list first."; return; }
+  st.className="status"; st.textContent = (mode==="matchup"||mode==="notable")
+    ? "Searching OpenDota + looking up player ranks… (can take 10–30s)"
+    : "Searching OpenDota… (can take 10–30s)";
+  selected.clear(); updateSelCount();
+  try{
+    const res = await api("/api/search", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(params)});
+    lastRows = res.rows || [];
+    lastParams = params;
+    resultsMode = mode;
+    $("#sqlOut").textContent = res.sql || "";
+    sortState = (mode==="matchup") ? { col:"weakest", dir:-1 } : { col:null, dir:1 };
+    refreshView();
+    st.className="status ok";
+    st.textContent = `${lastRows.length} ${mode==="notable"?"player(s)":"row(s)"}.`;
+    if(mode!=="raw" || lastRows.length) saveSearch(mode, params, lastRows, res.sql);
+  }catch(e){
+    st.className="status err"; st.textContent = "Error: "+e.message;
+    $("#results").innerHTML = `<div class="empty">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function fmtCell(key,val){
+  if(val===null||val===undefined) return '<span style="color:var(--dim)">–</span>';
+  if(key==="duration" && typeof val==="number"){ const m=Math.floor(val/60),s=val%60; return `${m}:${String(s).padStart(2,"0")}`; }
+  if((key==="won"||key==="hero_won") ) return val ? '<span class="win">Win</span>' : '<span class="loss">Loss</span>';
+  if(key==="wr_pct") return val+"%";
+  if((key==="avg_rank_tier"||key==="avg_rank") && typeof val==="number") return Math.round(val);
+  return escapeHtml(String(val));
+}
+
+// keys starting with "_" are metadata (e.g. _games) — never shown as columns
+function dataCols(rows){ return Object.keys(rows[0]).filter(c=>!c.startsWith("_")); }
+
+// rank string -> sortable strength (higher = stronger); "Immortal #1" tops the list
+function rankStrength(s){
+  if(!s || s==="—") return -1;
+  const medals=["herald","guardian","crusader","archon","legend","ancient","divine","immortal"];
+  const low=String(s).toLowerCase();
+  if(low.startsWith("immortal")){ const m=low.match(/#(\d+)/); return m ? 1000000-(+m[1]) : 900000; }
+  for(let i=0;i<medals.length;i++){ if(low.startsWith(medals[i])){ const st=(low.match(/(\d)/)||[])[1]; return (i+1)*10 + (st?+st:0); } }
+  return -1;
+}
+
+// ---------- rank medals (icons served locally from /rank_icons/ — OpenDota's CDN
+// is unreliable from some regions, so we ship copies under static/rank_icons/) ----------
+const RK_BASE = "/rank_icons/";
+function rankMedal(rankTier, lb){
+  const t = parseInt(rankTier, 10);
+  if(!t) return `<span class="rkmedal"><img class="rkicon" src="${RK_BASE}rank_icon_0.png" alt=""></span>`;
+  const medal = Math.floor(t/10);
+  if(medal >= 8){ // Immortal: icon varies by ladder position, number shown as text
+    const icon = (lb && lb<=10) ? "rank_icon_8c.png" : (lb && lb<=100) ? "rank_icon_8b.png" : "rank_icon_8.png";
+    return `<span class="rkmedal"><img class="rkicon" src="${RK_BASE}${icon}" alt="Immortal">`+
+           `${lb?`<span class="rklb">${lb}</span>`:""}</span>`;
+  }
+  let star = t%10; if(star>7) star=7;  // avg tiers can compute >5; OpenDota clamps to 7
+  const starImg = star>=1 ? `<img class="rkstar" src="${RK_BASE}rank_star_${star}.png" alt="">` : "";
+  return `<span class="rkmedal"><img class="rkicon" src="${RK_BASE}rank_icon_${medal}.png" alt="">${starImg}</span>`;
+}
+// player cell: medal + name + rank text. p = {name, rank, rank_tier, leaderboard_rank}
+function rankCell(p){
+  if(!p) return '<span style="color:var(--dim)">–</span>';
+  return `<span class="rkcell">${rankMedal(p.rank_tier, p.leaderboard_rank)}`+
+         `<span class="rkname">${escapeHtml(p.name||"—")}</span>`+
+         `${p.rank?`<span class="rktxt">${escapeHtml(p.rank)}</span>`:""}</span>`;
+}
+// sortable strength for a player object (immortal ladder: lower # = stronger)
+function tierStrength(p){
+  if(!p || !p.rank_tier) return -1;
+  if(Math.floor(p.rank_tier/10) >= 8) return p.leaderboard_rank ? 1000000-p.leaderboard_rank : 900000;
+  return p.rank_tier;
+}
+// is this mid a ranked Immortal (medal tier 8)? used to gate out unknown/lower mids
+function mxIsImmortal(p){ return !!(p && p.rank_tier && Math.floor(p.rank_tier/10) >= 8); }
+
+// ---------- client-side sort over lastRows ----------
+function refreshView(){
+  let rows = lastRows.slice();
+  const mode = resultsMode || currentMode;
+  if(mode==="matchup"){
+    rows = rows.map(mxNorm);  // normalize so sort/filter see a/b objects
+    const imm = $("#m_immortal");
+    if(imm && imm.checked) rows = rows.filter(r=>mxIsImmortal(r.a) && mxIsImmortal(r.b));
+  }
+  viewRows = sortRows(rows);
+  renderResults(viewRows, mode, lastParams);
+}
+function sortArrow(c){ return sortState.col===c ? `<span class="arr">${sortState.dir>0?"▲":"▼"}</span>` : ""; }
+function sortVal(row, col){
+  if(col==="rank") return rankStrength(row[col]);
+  if(col==="a_strength") return tierStrength(row.a);
+  if(col==="b_strength") return tierStrength(row.b);
+  if(col==="weakest") return Math.min(tierStrength(row.a), tierStrength(row.b)); // game = its weaker mid
+  return row[col];
+}
+function sortRows(rows){
+  const col = sortState.col; if(!col) return rows;
+  const dir = sortState.dir;
+  return rows.sort((ra,rb)=>{
+    let a = sortVal(ra,col), b = sortVal(rb,col);
+    if(typeof a==="boolean" || typeof b==="boolean") return ((a?1:0)-(b?1:0))*dir;
+    const an=(a===null||a===undefined), bn=(b===null||b===undefined);
+    if(an&&bn) return 0; if(an) return 1; if(bn) return -1;  // blanks sink regardless of dir
+    if(typeof a==="number" && typeof b==="number") return (a-b)*dir;
+    const na=Number(a), nb=Number(b);
+    if(!isNaN(na) && !isNaN(nb)) return (na-nb)*dir;
+    return String(a).localeCompare(String(b))*dir;
+  });
+}
+function sortBy(col){
+  if(sortState.col===col) sortState.dir = -sortState.dir;
+  else sortState = { col, dir: 1 };
+  refreshView();
+}
+
+function renderResults(rows, mode, params){
+  params = params || {};
+  const box = $("#results");
+  if(!rows.length){ box.innerHTML = '<div class="empty">No matches found. Try widening months, lowering Min games, or clearing the enemy filter.</div>'; return; }
+  if(mode==="notable"){ renderNotable(rows); return; }
+  if(mode==="matchup"){ renderMatchup(rows); return; }
+  const cols = dataCols(rows);
+  const hasMatch = cols.includes("match_id");
+  let html = "<table><thead><tr>";
+  if(hasMatch) html+="<th></th>";
+  cols.forEach(c=>html += `<th class="sortable" data-sort="${escapeHtml(c)}">${escapeHtml(c)}${sortArrow(c)}</th>`);
+  if(hasMatch) html+="<th>links</th>";
+  html+="</tr></thead><tbody>";
+  rows.forEach(row=>{
+    html+="<tr>";
+    if(hasMatch) html+=`<td><input type="checkbox" class="rowchk" value="${row.match_id}"></td>`;
+    cols.forEach(c=>html+=`<td>${fmtCell(c,row[c])}</td>`);
+    if(hasMatch) html+=`<td>${matchLinks(row.match_id)}</td>`;
+    html+="</tr>";
+  });
+  html+="</tbody></table>";
+  box.innerHTML = html;
+  $$("#results th.sortable").forEach(th=>th.onclick=()=>sortBy(th.dataset.sort));
+  bindRowChecks();
+}
+
+// Notable: each player row, with that player's games listed beneath it (left checkboxes).
+// The row's leading checkbox selects/deselects all of that player's games at once.
+// account_id is dropped from display (redundant — reachable via the match links);
+// it's kept on the row object for grouping games via data-acc. wins/games/wr are
+// folded into one "win rate" column.
+const NOTABLE_COLS = [
+  { key:"name",        label:"name" },
+  { key:"team_name",   label:"team" },
+  { key:"wr_pct",      label:"win rate", render:p=>{ const wr=p.wr_pct, col=wr>50?"var(--ok)":wr<50?"var(--err)":"var(--warn)"; return `${p.wins}/${p.hero_games} · <span style="color:${col}">${wr}% WR</span>`; } },
+  { key:"last_played", label:"last played" },
+  { key:"rank",        label:"rank", render:p=>`<span class="rkcell">${rankMedal(p.rank_tier,p.leaderboard_rank)}<span class="rktxt">${escapeHtml(p.rank||"—")}</span></span>` },
+];
+function renderNotable(players){
+  const box = $("#results");
+  const cols = NOTABLE_COLS;
+  const vsName = (lastParams && lastParams.vs_hero) ? heroName(lastParams.vs_hero) : null;
+  let html = "<table><thead><tr><th></th>";
+  cols.forEach(c=>html += `<th class="sortable" data-sort="${escapeHtml(c.key)}">${escapeHtml(c.label)}${sortArrow(c.key)}</th>`);
+  html += "</tr></thead><tbody>";
+  players.forEach(p=>{
+    const games = p._games || [], acc = p.account_id;
+    const collapsed = collapsedPlayers.has(String(acc));
+    const hide = collapsed ? ' style="display:none"' : '';
+    html += `<tr class="player-row" data-acc="${acc}"><td class="pcell">`+
+            `<input type="checkbox" class="pchk" data-acc="${acc}" title="select all ${games.length} game(s)"></td>`;
+    cols.forEach(c=>html += `<td>${c.render ? c.render(p) : fmtCell(c.key, p[c.key])}</td>`);
+    html += "</tr>";
+    if(!games.length){
+      html += `<tr class="sub" data-grp="${acc}"${hide}><td></td><td colspan="${cols.length}" style="color:var(--dim)">No games in range.</td></tr>`;
+    } else {
+      games.forEach(g=>{
+        const lane = vsName ? (g.enemy_lane ? laneName(g.enemy_lane) : "—") : "-";
+        html += `<tr class="sub" data-grp="${acc}"${hide}><td><input type="checkbox" class="rowchk" value="${g.match_id}" data-acc="${acc}"></td>`+
+          `<td colspan="${cols.length}"><span style="color:var(--dim)">${escapeHtml(g.played||"")}</span> · `+
+          `${fmtCell("won",g.won)} · ${fmtCell("duration",g.duration)} · `+
+          `<span style="color:var(--dim)">enemy lane:</span> ${escapeHtml(lane)} · `+
+          `${g.match_id} · ${matchLinks(g.match_id)}</td></tr>`;
+      });
+    }
+  });
+  html += "</tbody></table>";
+  box.innerHTML = html;
+  $$("#results th.sortable").forEach(th=>th.onclick=()=>sortBy(th.dataset.sort));
+  bindRowChecks();
+  bindPlayerChecks();
+  bindPlayerCollapse();
+}
+
+// Per-player game-list collapse: clicking a player row toggles its games.
+// State lives in collapsedPlayers so it persists across re-sort.
+function setGroupCollapsed(acc, collapse){
+  const key = String(acc);
+  if(collapse) collapsedPlayers.add(key); else collapsedPlayers.delete(key);
+  $$(`#results tr.sub[data-grp="${acc}"]`).forEach(r=>r.style.display = collapse ? "none" : "");
+}
+function bindPlayerCollapse(){
+  // Whole player row toggles its game list (the row has no other clickable content);
+  // clicks on the select-all checkbox are excluded so selection still works.
+  $$('#results tr.player-row').forEach(row=>{
+    const acc = row.dataset.acc; if(acc==null) return;
+    row.onclick = e=>{
+      if(e.target.classList.contains('pchk')) return;  // let the checkbox do its thing
+      setGroupCollapsed(acc, !collapsedPlayers.has(String(acc)));
+    };
+  });
+}
+
+function bindPlayerChecks(){
+  $$("#results .pchk").forEach(pc=>{
+    syncPlayerCheck(pc.dataset.acc);
+    pc.onchange = ()=>{
+      $$(`#results .rowchk[data-acc="${pc.dataset.acc}"]`).forEach(c=>{
+        c.checked = pc.checked;
+        c.checked ? selected.add(+c.value) : selected.delete(+c.value);
+      });
+      updateSelCount();
+    };
+  });
+}
+function syncPlayerCheck(acc){
+  const pc = $(`#results .pchk[data-acc="${acc}"]`); if(!pc) return;
+  const kids = $$(`#results .rowchk[data-acc="${acc}"]`);
+  pc.checked = kids.length>0 && kids.every(x=>x.checked);
+}
+
+// Mid matchup: Win/Loss is from hero A's perspective (the hero you're studying).
+// Player columns and avg rank show the OpenDota medal badge.
+const MATCHUP_COLS = [
+  { label:"played",        sort:"played",        render:r=>`<span style="color:var(--dim)">${escapeHtml(r.played||"")}</span>` },
+  { label:"A result",      sort:"a_win",         render:r=> r.a_win ? '<span class="win">Win</span>' : '<span class="loss">Loss</span>' },
+  { label:"hero A player", sort:"a_strength",    render:r=> rankCell(r.a) },
+  { label:"hero B player", sort:"b_strength",    render:r=> rankCell(r.b) },
+  { label:"avg rank",      sort:"avg_rank_tier", render:r=> r.avg_rank_tier ? rankMedal(r.avg_rank_tier) : '<span style="color:var(--dim)">–</span>' },
+  { label:"duration",      sort:"duration",      render:r=> fmtCell("duration", r.duration) },
+];
+// Normalize a row to the new shape so pre-change cached history still renders
+// (old shape: result string + "hero A/B player" combined strings + avg_rank).
+function mxNorm(r){
+  if(r.a || r.b) return r;
+  const win = typeof r.result==="string" ? r.result.trim().startsWith("A") : !!r.a_win;
+  return { match_id:r.match_id, played:r.played, duration:r.duration, a_win:win,
+    a:{name:r["hero A player"]}, b:{name:r["hero B player"]},
+    avg_rank_tier: r.avg_rank_tier!=null ? r.avg_rank_tier : r.avg_rank };
+}
+function renderMatchup(rawRows){
+  const rows = rawRows.map(mxNorm);
+  const box = $("#results"), cols = MATCHUP_COLS;
+  const imm = $("#m_immortal") && $("#m_immortal").checked;
+  let html = imm
+    ? `<div class="hint" style="margin:0 0 8px">Showing ${rows.length} of ${lastRows.length} games — both mids ranked Immortal, weaker mid first. Untick “both mids Immortal” to see stomp / unknown-rank games too.</div>`
+    : `<div class="hint" style="margin:0 0 8px">Showing all ${rows.length} games (incl. big skill-gap and unknown-rank mids).</div>`;
+  html += "<table><thead><tr><th></th>";
+  cols.forEach(c=>html += `<th class="sortable" data-sort="${c.sort}">${escapeHtml(c.label)}${sortArrow(c.sort)}</th>`);
+  html += "<th>links</th></tr></thead><tbody>";
+  rows.forEach(r=>{
+    html += `<tr><td><input type="checkbox" class="rowchk" value="${r.match_id}"></td>`;
+    cols.forEach(c=>html += `<td>${c.render(r)}</td>`);
+    html += `<td>${matchLinks(r.match_id)}</td></tr>`;
+  });
+  html += "</tbody></table>";
+  box.innerHTML = html;
+  $$("#results th.sortable").forEach(th=>th.onclick=()=>sortBy(th.dataset.sort));
+  bindRowChecks();
+}
+
+function matchLinks(id){
+  return `<a href="https://www.opendota.com/matches/${id}" target="_blank">OD</a> · <a href="https://www.dotabuff.com/matches/${id}" target="_blank">DB</a>`;
+}
+
+function bindRowChecks(){
+  $$(".rowchk").forEach(c=>{
+    c.checked = selected.has(+c.value);
+    c.onchange = ()=>{
+      c.checked ? selected.add(+c.value) : selected.delete(+c.value);
+      updateSelCount();
+      if(c.dataset.acc) syncPlayerCheck(c.dataset.acc);
+    };
+  });
+}
+function updateSelCount(){ $("#selCount").textContent = selected.size; }
+$("#selAll").onclick=()=>{ $$(".rowchk").forEach(c=>{c.checked=true; selected.add(+c.value);}); $$("#results .pchk").forEach(p=>p.checked=true); updateSelCount(); };
+$("#selNone").onclick=()=>{ selected.clear(); $$(".rowchk").forEach(c=>c.checked=false); $$("#results .pchk").forEach(p=>p.checked=false); updateSelCount(); };
+
+// ---------- descriptive replay names (saved as a hardlink next to {match_id}.dem) ----------
+function slugify(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
+// "Immortal #2"->imm2, "Divine 5"->div5, "—"/blank->unrk
+function rankSlug(s){
+  if(!s || s==="—") return "unrk";
+  const low=String(s).toLowerCase();
+  const medal=(low.match(/[a-z]+/)||["x"])[0].slice(0,3);
+  const num=(low.match(/\d+/)||[""])[0];
+  return medal+num;
+}
+// Build a readable filename stem for a match using the current results context.
+// Always ends in _{match_id} so the server can recover the id and dedupe.
+function replayName(mid){
+  if(resultsMode==="matchup"){
+    const row = lastRows.map(mxNorm).find(r=>+r.match_id===+mid);
+    if(row){
+      const ha=slugify(heroName(lastParams.heroA)), hb=slugify(heroName(lastParams.heroB));
+      const lane=lastParams.require_mid?"mid":"lane";
+      const res=row.a_win?"WIN":"LOSS";
+      const ra=rankSlug((row.a||{}).rank), rb=rankSlug((row.b||{}).rank);
+      return `${ha}-vs-${hb}_${lane}_${res}_${ra}-vs-${rb}_${mid}`;
+    }
+  } else if(resultsMode==="notable"){
+    for(const p of lastRows){
+      const g=(p._games||[]).find(x=>+x.match_id===+mid);
+      if(g){
+        const hero=slugify(heroName(lastParams.hero)), pn=slugify(p.name||"player");
+        const res=g.won?"WIN":"LOSS", day=(g.played||"").slice(0,10);
+        return `${hero}_${pn}_${res}_${day}_${mid}`;
+      }
+    }
+  }
+  return String(mid); // raw mode / not found -> plain id, no hardlink
+}
+
+$("#dlSel").onclick=async()=>{
+  if(!selected.size){ alert("Tick some matches first."); return; }
+  const matches=[...selected].map(id=>({match_id:id, name:replayName(id)}));
+  await api("/api/download",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({matches})});
+  $('[data-tab="downloads"]').click();
+  pollDownloads();
+};
+
+// ---------- local actions (launch Dota) ----------
+$("#launchDota").onclick=async()=>{
+  try{ await api("/api/launch-dota",{method:"POST"}); }
+  catch(e){ alert("Couldn't launch Dota 2: "+e.message); }
+};
+
+// ---------- replays ----------
+let replayRows = [];                 // backing data for the My Replays table
+const selectedReplays = new Set();   // r.name of checked replays
+$("#refreshReplays").onclick=loadReplays;
+async function loadReplays(){
+  const st=$("#replaysStatus"); st.textContent="Loading…";
+  try{
+    const rows = await api("/api/replays");
+    replayRows = rows; selectedReplays.clear();
+    const total = rows.reduce((a,r)=>a+r.size,0);
+    st.textContent = `${rows.length} file(s) · ${fmtSize(total)} total`;
+    if(!rows.length){ $("#replayList").innerHTML='<div class="empty">No .dem files in your replay folder yet.</div>'; updateRepSelCount(); return; }
+    let h='<table><thead><tr><th></th><th>replay</th><th>size</th><th>modified</th><th>links</th><th></th></tr></thead><tbody>';
+    rows.forEach((r,i)=>{ h+=`<tr><td><input type="checkbox" class="repchk" data-idx="${i}"></td>
+      <td>${escapeHtml(r.label||r.name)}<div style="font-size:11px;color:var(--dim)">${escapeHtml(r.name)}</div></td>
+      <td>${fmtSize(r.size)}</td><td>${escapeHtml(r.mtime)}</td>
+      <td>${r.match_id?matchLinks(r.match_id):"—"}</td>
+      <td><button class="iconbtn del-replay" data-idx="${i}" title="Delete" aria-label="Delete replay">${ICON_DELETE}</button></td></tr>`; });
+    h+='</tbody></table>'; $("#replayList").innerHTML=h;
+    $$("#replayList .del-replay").forEach(b=>b.onclick=()=>deleteReplayRows([replayRows[+b.dataset.idx]]));
+    $$("#replayList .repchk").forEach(c=>c.onchange=()=>{
+      const r=replayRows[+c.dataset.idx];
+      c.checked ? selectedReplays.add(r.name) : selectedReplays.delete(r.name);
+      updateRepSelCount();
+    });
+    updateRepSelCount();
+  }catch(e){ st.textContent="Error: "+e.message; }
+}
+function updateRepSelCount(){ $("#repSelCount").textContent = selectedReplays.size; }
+$("#repSelAll").onclick=()=>{ $$("#replayList .repchk").forEach(c=>{c.checked=true; selectedReplays.add(replayRows[+c.dataset.idx].name);}); updateRepSelCount(); };
+$("#repSelNone").onclick=()=>{ selectedReplays.clear(); $$("#replayList .repchk").forEach(c=>c.checked=false); updateRepSelCount(); };
+$("#repDelSel").onclick=()=>{
+  const rows = replayRows.filter(r=>selectedReplays.has(r.name));
+  if(!rows.length){ alert("Tick some replays first."); return; }
+  deleteReplayRows(rows);
+};
+async function deleteReplayRows(rows){
+  rows = rows.filter(Boolean); if(!rows.length) return;
+  const names = []; rows.forEach(r=>(r.all_names||[r.name]).forEach(n=>names.push(n)));  // every alias
+  const total = rows.reduce((a,r)=>a+r.size,0);
+  const label = rows.length===1 ? `${rows[0].name}\n${fmtSize(rows[0].size)}` : `${rows.length} replays · ${fmtSize(total)}`;
+  if(!confirm(`Delete? This removes the .dem from disk — can't be undone.\n\n${label}`)) return;
+  try{
+    await api("/api/replays/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({names})});
+    loadReplays();
+  }catch(e){ alert("Delete failed: "+e.message); }
+}
+
+// ---------- downloads ----------
+const ICON_CANCEL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const ICON_RETRY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+const ICON_DELETE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+$("#clearDone").onclick=async()=>{ await api("/api/downloads/clear",{method:"POST"}); pollDownloads(); };
+async function pollDownloads(){
+  let rows; try{ rows = await api("/api/downloads"); }catch(e){ return; }
+  const active = rows.filter(r=>["queued","resolving","downloading"].includes(r.status)).length;
+  const badge=$("#dlBadge");
+  if(active>0){ badge.style.display=""; badge.textContent=active; } else badge.style.display="none";
+  const box=$("#dlList");
+  if(!rows.length){ box.innerHTML='<div class="empty">No downloads yet. Select matches in Search and hit Download.</div>'; return; }
+  let h='<table><thead><tr><th>match</th><th>status</th><th>progress</th><th>detail</th><th></th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    const pct = r.total ? Math.min(100,Math.round(100*r.bytes/r.total)) : (r.status==="done"?100:0);
+    const prog = (r.status==="downloading"||r.status==="done")
+      ? `<span class="prog"><div style="width:${pct}%"></div></span> ${fmtSize(r.bytes)}${r.total?" / "+fmtSize(r.total):""}`
+      : "";
+    const act = ["queued","resolving","downloading"].includes(r.status)
+        ? `<button class="iconbtn cancel-dl" data-mid="${r.match_id}" title="Cancel" aria-label="Cancel download">${ICON_CANCEL}</button>`
+      : ["error","cancelled","parsing"].includes(r.status)
+        ? `<button class="iconbtn retry-dl" data-mid="${r.match_id}" title="Retry" aria-label="Retry download">${ICON_RETRY}</button>`
+      : "";
+    h+=`<tr><td>${matchLinks(r.match_id)} ${r.match_id}</td>
+        <td><span class="pill ${r.status}">${r.status}</span></td>
+        <td>${prog}</td><td style="white-space:normal;color:var(--dim)">${escapeHtml(r.message||"")}</td>
+        <td>${act}</td></tr>`;
+  });
+  h+='</tbody></table>'; box.innerHTML=h;
+  $$("#dlList .cancel-dl").forEach(b=>b.onclick=()=>dlAction("/api/download/cancel", +b.dataset.mid));
+  $$("#dlList .retry-dl").forEach(b=>b.onclick=()=>dlAction("/api/download/retry", +b.dataset.mid));
+}
+async function dlAction(path, mid){
+  try{ await api(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({match_id:mid})}); }
+  catch(e){ alert("Failed: "+e.message); }
+  pollDownloads();
+}
+
+// ---------- history (localStorage; lets you re-open recent searches without re-hitting the API) ----------
+const HKEY="dota_replay_history_v1";
+function loadHistory(){ try{ return JSON.parse(localStorage.getItem(HKEY))||[]; }catch(e){ return []; } }
+function saveHistory(h){ try{ localStorage.setItem(HKEY, JSON.stringify(h)); }catch(e){ if(h.length>1) saveHistory(h.slice(0, Math.max(1, h.length-5))); } }
+function heroName(id){ const h=HEROES.find(x=>x.id===+id); return h? h.name : ("#"+id); }
+function laneName(v){ return (LANES.find(l=>l.v===+v)||{}).n || ""; }
+function historyLabel(mode, p){
+  if(mode==="notable"){ let s=`Notable · ${heroName(p.hero)}`; if(p.vs_hero){ s+=` vs ${heroName(p.vs_hero)}`; if(p.vs_lane) s+=` ${laneName(p.vs_lane)}`; } return s+` · ${p.months}mo`; }
+  if(mode==="matchup") return `Matchup · ${heroName(p.heroA)} vs ${heroName(p.heroB)}${p.require_mid?" (mid)":""} · ${p.months}mo`;
+  return "Raw SQL";
+}
+function saveSearch(mode, params, rows, sql){
+  const key = mode+":"+JSON.stringify(params);
+  let h = loadHistory().filter(e=>e.key!==key);
+  h.unshift({ id:String(Date.now())+Math.random().toString(36).slice(2,6), key, ts:Date.now(),
+              mode, params, label:historyLabel(mode,params), rows, sql:sql||"" });
+  saveHistory(h.slice(0,30)); renderHistory();
+}
+function renderHistory(){
+  const h = loadHistory(), box = $("#histList");
+  if(!h.length){ box.innerHTML='<div class="empty" style="padding:6px;font-size:12px">No searches yet.</div>'; return; }
+  box.innerHTML = h.map(e=>`<div class="hist-item" data-id="${e.id}">
+      <span class="h-del" data-del="${e.id}" title="remove">×</span>
+      <div class="h-label">${escapeHtml(e.label)}</div>
+      <div class="h-meta"><span>${timeAgo(e.ts)}</span><span>${e.rows.length} rows</span></div>
+    </div>`).join("");
+  $$("#histList .hist-item").forEach(el=>el.onclick=()=>restoreHistory(el.dataset.id));
+  $$("#histList .h-del").forEach(x=>x.onclick=ev=>{ ev.stopPropagation(); deleteHistory(x.dataset.del); });
+}
+function deleteHistory(id){ saveHistory(loadHistory().filter(e=>e.id!==id)); renderHistory(); }
+function setVs(input, id){ if(id) setHero(input, +id); else { input.value=""; input.dataset.heroId=""; } }
+function restoreParams(mode, p){
+  if(mode==="notable"){ setHero($("#n_hero"),p.hero); setVs($("#n_vs"),p.vs_hero); $("#n_vs_lane").value=p.vs_lane||0; $("#n_months").value=p.months; $("#n_min").value=p.min_games; $("#n_limit").value=p.limit; }
+  else if(mode==="matchup"){ setHero($("#m_a"),p.heroA); setHero($("#m_b"),p.heroB); $("#m_months").value=p.months; $("#m_limit").value=p.limit; $("#m_mid").checked=!!p.require_mid; }
+  else if(mode==="raw"){ $("#r_sql").value=p.sql||""; }
+}
+function restoreHistory(id){
+  const e = loadHistory().find(x=>x.id===id); if(!e) return;
+  $('[data-tab="search"]').click();
+  setMode(e.mode); restoreParams(e.mode, e.params);
+  lastRows = e.rows||[]; lastParams = e.params||{}; resultsMode = e.mode;
+  sortState = (e.mode==="matchup") ? { col:"weakest", dir:-1 } : { col:null, dir:1 };
+  selected.clear(); updateSelCount();
+  refreshView();
+  $("#sqlOut").textContent = e.sql||"";
+  const st=$("#searchStatus"); st.className="status";
+  st.innerHTML = `Cached results from ${timeAgo(e.ts)} · ${lastRows.length} rows. <button class="linkbtn" id="rerun">re-run live</button>`;
+  const rr=$("#rerun"); if(rr) rr.onclick=()=>runSearch(e.mode);
+}
+function timeAgo(ts){ const s=Math.floor((Date.now()-ts)/1000);
+  if(s<60) return s+"s ago"; const m=Math.floor(s/60); if(m<60) return m+"m ago";
+  const h=Math.floor(m/60); if(h<24) return h+"h ago"; return Math.floor(h/24)+"d ago"; }
+$("#histClear").onclick=()=>{ if(confirm("Clear all search history?")){ saveHistory([]); renderHistory(); } };
+
+// ---------- utils ----------
+function fmtSize(b){ if(!b) return "0"; const u=["B","KB","MB","GB"]; let i=0,n=b; while(n>=1024&&i<u.length-1){n/=1024;i++;} return n.toFixed(i?1:0)+" "+u[i]; }
+function escapeHtml(s){ return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+</script>
+</body>
+</html>
