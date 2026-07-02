@@ -359,7 +359,7 @@ function renderMileage() {
           ${w.longest > 0 && w.longest === bestLong ? 'title="longest run this month"' : ""}>${w.longest > 0 ? w.longest + " km" : "–"}</td>
         <td class="n${w.pace === "-" ? " z" : ""}">${w.pace === "-" ? "–" : w.pace}</td>
         <td class="n${w.hr === "-" ? " z" : ""}">${w.hr === "-" ? "–" : w.hr}</td>
-      </tr>`).join("");
+      </tr>`).reverse().join("");  // newest week first, matching month order
     return `<div class="mgroup">
       <div class="mghead"><b>${name}</b><span class="mtot">${totals[mk].km} km · ${totals[mk].runs} runs</span></div>
       <div class="mbarwrap"><div class="mbar" style="width:${(totals[mk].km / monthMax * 100).toFixed(1)}%"></div></div>
