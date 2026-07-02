@@ -1,0 +1,686 @@
+{
+  "name": "Full-Spectrum 10k (John Davis, RunningWritings) - as published",
+  "start_date": "2026-07-06",
+  "goal": "10k race (Saturday of week 16)",
+  "template": "As published: peak 120 km/wk with doubles. Displayed at FULL volume for reference - Ben executes the Brant plan; use this tab to compare workouts/paces.",
+  "notes": [
+    "All percentages are relative to current 10k fitness - revise the estimate every ~4 weeks from workouts",
+    "Warm-ups/cool-downs count toward mileage goals (2-3km wu + strides, 2-3km cd; less around double-T/special blocks)",
+    "Volume in the race-specific phase is flexible - recover and be fresh for the workouts",
+    "Strides/hill sprints can be added 1-2x/week"
+  ],
+  "weeks": [
+    {
+      "week": 1,
+      "phase": "general",
+      "volume_km": 89,
+      "days": {
+        "mon": {
+          "type": "intervals",
+          "km": 10,
+          "workout": "6 sets of: 2min @ 105% + 1min jog + 1min @ 108% + 1.5min jog"
+        },
+        "tue": {
+          "type": "easy",
+          "km": 12,
+          "workout": "11-13km easy @ 55-65%"
+        },
+        "wed": {
+          "type": "tempo",
+          "km": 11,
+          "workout": "8km @ 90%"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 16,
+          "workout": "AM: 8-12km easy; PM: 5-6km easy"
+        },
+        "fri": {
+          "type": "tempo",
+          "km": 10,
+          "workout": "10km Kenyan-style progression run (start very easy, finish ~90%)"
+        },
+        "sat": {
+          "type": "long",
+          "km": 19,
+          "workout": "18-20km easy through rolling hills"
+        },
+        "sun": {
+          "type": "easy",
+          "km": 8,
+          "workout": "6-10km very easy @ 45-55%"
+        }
+      }
+    },
+    {
+      "week": 2,
+      "phase": "general",
+      "volume_km": 97,
+      "days": {
+        "mon": {
+          "type": "intervals",
+          "km": 10,
+          "workout": "4 sets of: 3min @ 100% + 1min jog + 2min @ 105% + 2min jog"
+        },
+        "tue": {
+          "type": "easy",
+          "km": 12,
+          "workout": "11-13km easy"
+        },
+        "wed": {
+          "type": "intervals",
+          "km": 14,
+          "workout": "Double threshold - AM: 5x1200m @ 96-97% w/ 1min jog; PM: 3 sets of: 300m @ 110-112% w/ 2min walk + 200m @ 113-115% w/ 3-4min walk/jog"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 9,
+          "workout": "8-10km very easy @ 45-55%"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 18,
+          "workout": "AM: 11-15km easy; PM: 5-6km easy"
+        },
+        "sat": {
+          "type": "long",
+          "km": 13,
+          "workout": "13km @ 85%"
+        },
+        "sun": {
+          "type": "easy",
+          "km": 8,
+          "workout": "Off or 6-10km very easy @ 45-55%"
+        }
+      }
+    },
+    {
+      "week": 3,
+      "phase": "general",
+      "volume_km": 102,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 17,
+          "workout": "AM: 11-13km easy to moderate; PM: 5-6km easy"
+        },
+        "tue": {
+          "type": "tempo",
+          "km": 12,
+          "workout": "12km Kenyan-style progression run"
+        },
+        "wed": {
+          "type": "easy",
+          "km": 13,
+          "workout": "11-15km easy"
+        },
+        "thu": {
+          "type": "tempo",
+          "km": 12,
+          "workout": "10km @ 90%"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 18,
+          "workout": "AM: 11-13km easy; PM: 5-8km easy"
+        },
+        "sat": {
+          "type": "long",
+          "km": 21,
+          "workout": "20-22km easy through rolling hills"
+        },
+        "sun": {
+          "type": "easy",
+          "km": 10,
+          "workout": "8-12km very easy @ 45-55%"
+        }
+      }
+    },
+    {
+      "week": 4,
+      "phase": "general",
+      "volume_km": 110,
+      "days": {
+        "mon": {
+          "type": "intervals",
+          "km": 10,
+          "workout": "3 sets of: 3min @ 100-102% + 1min jog + 2min @ 104-106% + 1min jog + 1min @ 106-108%"
+        },
+        "tue": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km easy"
+        },
+        "wed": {
+          "type": "intervals",
+          "km": 14,
+          "workout": "Double threshold - AM: 3x2km @ 91-93% w/ 2min jog; PM: 12x400m @ 99-101% w/ 25s walk"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 11,
+          "workout": "10-12km very easy"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km easy to moderate"
+        },
+        "sat": {
+          "type": "tempo",
+          "km": 12,
+          "workout": "5x1500m @ 96-97% w/ 1min jog"
+        },
+        "sun": {
+          "type": "long",
+          "km": 14,
+          "workout": "13-16km easy"
+        }
+      }
+    },
+    {
+      "week": 5,
+      "phase": "general",
+      "volume_km": 97,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 16,
+          "workout": "AM: 8-10km moderate @ 70-80%; PM: 6-8km easy"
+        },
+        "tue": {
+          "type": "tempo",
+          "km": 14,
+          "workout": "14km Kenyan-style progression run"
+        },
+        "wed": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km easy"
+        },
+        "thu": {
+          "type": "intervals",
+          "km": 10,
+          "workout": "10x2min @ 105% w/ 1.5min jog"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 16,
+          "workout": "AM: 8-10km easy; PM: 6-8km easy"
+        },
+        "sat": {
+          "type": "long",
+          "km": 16,
+          "workout": "16km @ 85%"
+        },
+        "sun": {
+          "type": "easy",
+          "km": 7,
+          "workout": "Off or 6-8km very easy"
+        }
+      }
+    },
+    {
+      "week": 6,
+      "phase": "general",
+      "volume_km": 113,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 19,
+          "workout": "AM: 10-13km easy to moderate; PM: 6-8km easy"
+        },
+        "tue": {
+          "type": "intervals",
+          "km": 13,
+          "workout": "Double threshold - AM: 6km @ 95%; PM: 10x500m @ 99-101% w/ 30s walk"
+        },
+        "wed": {
+          "type": "easy",
+          "km": 10,
+          "workout": "8-12km very easy"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km moderate"
+        },
+        "fri": {
+          "type": "intervals",
+          "km": 11,
+          "workout": "8x1000m @ 100% w/ 1min jog"
+        },
+        "sat": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy to easy"
+        },
+        "sun": {
+          "type": "long",
+          "km": 24,
+          "workout": "24-25km easy through rolling hills"
+        }
+      }
+    },
+    {
+      "week": 7,
+      "phase": "race-supportive",
+      "volume_km": 115,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 10,
+          "workout": "8-12km very easy to easy"
+        },
+        "tue": {
+          "type": "intervals",
+          "km": 14,
+          "workout": "AM: 4x2km @ 91-93% w/ 2min; PM: 5x300m @ 110-112% w/ 2-3min walk"
+        },
+        "wed": {
+          "type": "easy",
+          "km": 11,
+          "workout": "10-12km very easy"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km easy"
+        },
+        "fri": {
+          "type": "tempo",
+          "km": 15,
+          "workout": "12km @ 90%"
+        },
+        "sat": {
+          "type": "easy",
+          "km": 13,
+          "workout": "11-15km very easy"
+        },
+        "sun": {
+          "type": "easy",
+          "km": 19,
+          "workout": "AM: 10-13km easy; PM: 6-8km easy"
+        }
+      }
+    },
+    {
+      "week": 8,
+      "phase": "race-supportive",
+      "volume_km": 120,
+      "days": {
+        "mon": {
+          "type": "intervals",
+          "km": 11,
+          "workout": "4 sets of: 1200m @ 100% + 1min walk + 800m @ 103-105% + 3-4min walk/jog"
+        },
+        "tue": {
+          "type": "easy",
+          "km": 13,
+          "workout": "11-15km very easy to easy"
+        },
+        "wed": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km easy to moderate"
+        },
+        "thu": {
+          "type": "tempo",
+          "km": 13,
+          "workout": "6 sets of: 1200m @ 96-97% + 400m float @ 85-86%"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 13,
+          "workout": "11-15km very easy"
+        },
+        "sat": {
+          "type": "easy",
+          "km": 19,
+          "workout": "AM: 10-13km easy; PM: 6-8km easy"
+        },
+        "sun": {
+          "type": "long",
+          "km": 19,
+          "workout": "7km @ 84% + 6km @ 86% + 6km @ 88%"
+        }
+      }
+    },
+    {
+      "week": 9,
+      "phase": "race-supportive",
+      "volume_km": 108,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 8,
+          "workout": "Off or 6-10km very easy"
+        },
+        "tue": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy to easy"
+        },
+        "wed": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km moderate"
+        },
+        "thu": {
+          "type": "intervals",
+          "km": 13,
+          "workout": "AM: 8km @ 95%; PM: 2 sets of (400m, 300m, 200m) @ 110-115% w/ 2min walk between reps, 4-5min walk/jog between sets"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy"
+        },
+        "sat": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km easy"
+        },
+        "sun": {
+          "type": "long",
+          "km": 16,
+          "workout": "14km @ 90%"
+        }
+      }
+    },
+    {
+      "week": 10,
+      "phase": "race-supportive",
+      "volume_km": 120,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 13,
+          "workout": "11-15km very easy to easy"
+        },
+        "tue": {
+          "type": "easy",
+          "km": 17,
+          "workout": "AM: 8-12km easy; PM: 6-8km moderate"
+        },
+        "wed": {
+          "type": "intervals",
+          "km": 12,
+          "workout": "2 sets of: 6x500m @ 105% w/ 45-60s walk/jog, 4-5min walk/jog between sets"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km easy"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km easy to moderate"
+        },
+        "sat": {
+          "type": "tempo",
+          "km": 13,
+          "workout": "5 sets of: 1600m @ 96-97% + 400m float @ 85-86%"
+        },
+        "sun": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy"
+        }
+      }
+    },
+    {
+      "week": 11,
+      "phase": "race-specific",
+      "volume_km": 120,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km easy"
+        },
+        "tue": {
+          "type": "easy",
+          "km": 17,
+          "workout": "AM: 8-12km easy to moderate; PM: 6-8km moderate to strong @ 85-90%"
+        },
+        "wed": {
+          "type": "intervals",
+          "km": 12,
+          "workout": "4x2km @ 100% w/ 3-4min jog"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 13,
+          "workout": "11-15km easy"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km easy"
+        },
+        "sat": {
+          "type": "long",
+          "km": 16,
+          "workout": "15-16km @ 90%"
+        },
+        "sun": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy to easy"
+        }
+      }
+    },
+    {
+      "week": 12,
+      "phase": "race-specific",
+      "volume_km": 112,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 17,
+          "workout": "AM: 10-13km easy; PM: 5-6km easy"
+        },
+        "tue": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy"
+        },
+        "wed": {
+          "type": "intervals",
+          "km": 22,
+          "workout": "SPECIAL BLOCK - AM: 6km @ 85-90% + 3-5min rest + 4km @ 102-103%; PM: 6km @ 85-90% + 3-5min rest + 2x(600m, 400m, 300m, 200m) @ 110-115% w/ 1min walk, 4-5min walk/jog between sets"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 9,
+          "workout": "8-10km very easy"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 17,
+          "workout": "AM: 10-13km very easy; PM: 5-6km very easy (optional)"
+        },
+        "sat": {
+          "type": "easy",
+          "km": 20,
+          "workout": "AM: 11-15km easy; PM: 6-8km easy to moderate"
+        },
+        "sun": {
+          "type": "tempo",
+          "km": 11,
+          "workout": "10-12km @ 95%"
+        }
+      }
+    },
+    {
+      "week": 13,
+      "phase": "race-specific",
+      "volume_km": 110,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy to easy"
+        },
+        "tue": {
+          "type": "easy",
+          "km": 17,
+          "workout": "AM: 10-13km easy; PM: 5-6km easy"
+        },
+        "wed": {
+          "type": "intervals",
+          "km": 13,
+          "workout": "5x2km @ 100% w/ 3-4min jog"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 17,
+          "workout": "AM: 10-13km very easy to easy; PM: 5-6km very easy"
+        },
+        "sat": {
+          "type": "long",
+          "km": 17,
+          "workout": "16-18km @ 90%"
+        },
+        "sun": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy"
+        }
+      }
+    },
+    {
+      "week": 14,
+      "phase": "race-specific",
+      "volume_km": 110,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 13,
+          "workout": "11-15km easy"
+        },
+        "tue": {
+          "type": "easy",
+          "km": 16,
+          "workout": "AM: 8-10km easy; PM: 6-8km moderate"
+        },
+        "wed": {
+          "type": "intervals",
+          "km": 10,
+          "workout": "6x1km @ 105% w/ 2-3min jog"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 19,
+          "workout": "AM: 11-15km easy; PM: 5-8km easy (optional)"
+        },
+        "sat": {
+          "type": "tempo",
+          "km": 16,
+          "workout": "7-8 sets of: 1km @ 95% + 1km @ 85%"
+        },
+        "sun": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy"
+        }
+      }
+    },
+    {
+      "week": 15,
+      "phase": "race-specific",
+      "volume_km": 95,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 13,
+          "workout": "11-15km easy"
+        },
+        "tue": {
+          "type": "easy",
+          "km": 17,
+          "workout": "AM: 10-13km easy; PM: 5-6km easy (optional)"
+        },
+        "wed": {
+          "type": "intervals",
+          "km": 12,
+          "workout": "3km @ 100% + 4-5min rest + 2km @ 101% + 3-4min rest + 2km @ 102% + 3-4min rest + 1km @ 106-108%"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 13,
+          "workout": "11-15km very easy to easy"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 19,
+          "workout": "AM: 11-15km easy; PM: 5-8km easy (optional)"
+        },
+        "sat": {
+          "type": "tempo",
+          "km": 11,
+          "workout": "4-5x2km @ 91-93% w/ 2min walk"
+        },
+        "sun": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km very easy"
+        }
+      }
+    },
+    {
+      "week": 16,
+      "phase": "race",
+      "volume_km": 85,
+      "days": {
+        "mon": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km easy"
+        },
+        "tue": {
+          "type": "intervals",
+          "km": 10,
+          "workout": "4-5x1200m @ 96-97% w/ 1min jog, then 4x200m @ 108-110% w/ 200m jog"
+        },
+        "wed": {
+          "type": "easy",
+          "km": 17,
+          "workout": "AM: 10-13km easy; PM: 5-6km easy (optional)"
+        },
+        "thu": {
+          "type": "easy",
+          "km": 10,
+          "workout": "8-13km easy"
+        },
+        "fri": {
+          "type": "easy",
+          "km": 12,
+          "workout": "10-13km easy"
+        },
+        "sat": {
+          "type": "race",
+          "km": 10,
+          "workout": "10k RACE - add result to config.json after"
+        },
+        "sun": {
+          "type": "easy",
+          "km": 7,
+          "workout": "6-8km very easy"
+        }
+      }
+    }
+  ]
+}

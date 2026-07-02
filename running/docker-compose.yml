@@ -1,0 +1,12 @@
+services:
+  gui:
+    build: .
+    container_name: running-plan
+    ports:
+      - "5001:5001"
+    volumes:
+      - .:/app  # live source: Flask restarts on .py edits, pages reload themselves
+    environment:
+      TZ: Asia/Kuala_Lumpur
+      FLASK_DEBUG: "1"
+    restart: unless-stopped

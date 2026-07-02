@@ -1,0 +1,23 @@
+{
+  "_help": "THE one file to edit. athlete: HR overrides, null = derive from Garmin. races: add each race as {event, date, distance_m, time} - a race in the last 90 days becomes the pace anchor. plan: which plan to execute and its start date (must be a Monday).",
+  "plan": { "active": "brant", "start_date": "2026-07-06" },
+  "athlete": {
+    "max_hr": null,
+    "resting_hr": null,
+    "lactate_threshold_hr": null
+  },
+  "races": [
+    { "event": "Park Run", "date": "2023-12-31", "distance_m": 5000, "time": "28:48" },
+    { "event": "Park Run", "date": "2024-03-02", "distance_m": 5000, "time": "27:30" },
+    { "event": "Park Run", "date": "2024-04-06", "distance_m": 5000, "time": "26:54" },
+    { "event": "Park Run", "date": "2024-07-06", "distance_m": 5000, "time": "25:47" },
+    { "event": "KLSCM 10km", "date": "2024-10-05", "distance_m": 10000, "time": "53:53" },
+    { "event": "Park Run", "date": "2024-11-02", "distance_m": 5000, "time": "25:17" },
+    { "event": "Imigresen Duta Run", "date": "2025-07-05", "distance_m": 10000, "time": "52:50" },
+    { "event": "Score Half Marathon", "date": "2025-07-13", "distance_m": 21100, "time": "1:53:44" },
+    { "event": "Coway Run 10km", "date": "2025-08-31", "distance_m": 9530, "time": "49:45" },
+    { "event": "KLSCM 10km", "date": "2025-10-04", "distance_m": 10000, "time": "50:59" },
+    { "event": "KL 10km", "date": "2026-02-01", "distance_m": 10000, "time": "53:59" },
+    { "event": "5k race (short course)", "date": "2026-05-24", "distance_m": 4441, "time": "22:48" }
+  ]
+}

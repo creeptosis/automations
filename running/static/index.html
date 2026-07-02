@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10k Training Plan</title>
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #111418; color: #e6e6e6; margin: 0; padding: 20px; }
+  .wrap { max-width: 1150px; margin: 0 auto; }
+  h1 { font-size: 1.2em; margin: 0 0 4px; }
+  .sub { color: #9aa4b0; font-size: 0.85em; margin-bottom: 12px; }
+  .tabs { display: flex; gap: 8px; align-items: center; position: sticky; top: 0; z-index: 5; background: #111418; padding: 10px 0; margin-bottom: 8px; }
+  .tabs button, .statshead button { background: #1e242c; color: #cfd6dd; border: 1px solid #2c333d; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 0.95em; }
+  .tabs button.sel { background: #4da3ff; color: #0b0e12; font-weight: 700; border-color: #4da3ff; }
+  #syncbtn { margin-left: auto; background: #2b3a4d; border-color: #3d5878; }
+  #syncbtn:disabled, #recalc:disabled { opacity: 0.5; cursor: wait; }
+  #syncout { color: #8a93a0; font-size: 0.78em; margin: 0 0 10px; white-space: pre-line; }
+  .banner { border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.92em; border: 1px solid; }
+  .banner.fresh { background: #12241a; border-color: #1f4d33; color: #86efac; }
+  .banner.due { background: #2a2313; border-color: #6b5518; color: #fbbf24; }
+  .banner.overdue { background: #2a1515; border-color: #7a2e2e; color: #fca5a5; }
+  .banner small { display: block; color: #9aa4b0; margin-top: 4px; }
+
+  /* pager + subtabs */
+  .pager { display: flex; gap: 6px; margin-bottom: 12px; align-items: center; }
+  .pglabel { color: #9aa4b0; font-size: 0.85em; margin-right: 4px; }
+  .pager button { background: #1e242c; color: #cfd6dd; border: 1px solid #2c333d; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 0.85em; }
+  .pager button.sel { background: #4da3ff; color: #0b0e12; font-weight: 600; }
+  .pager button.cur { border-color: #4da3ff; }
+  .pager button:disabled { opacity: 0.4; cursor: default; }
+
+  /* calendar */
+  .dowhead { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; position: sticky; top: 56px; z-index: 4; background: #111418; padding: 2px 0 8px; }
+  .dowhead span { color: #9aa4b0; font-size: 0.72em; letter-spacing: 0.08em; padding-left: 12px; }
+  .wkrow { margin-bottom: 16px; }
+  .wkhead { color: #9aa4b0; font-size: 0.85em; margin-bottom: 6px; }
+  .wkhead b { color: #e6e6e6; }
+  .wkhead.cur b { color: #4da3ff; }
+  .wkgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .cell { background: #1a1f26; border: 1px solid #262c35; border-radius: 8px; padding: 7px 9px 8px; min-height: 96px; display: flex; flex-direction: column; }
+  .cell.today { background: #16375a; border-color: #4da3ff; }
+  .cell.today .foot { color: #b7c9dc; }
+  .tdy { background: #4da3ff; color: #0b0e12; border-radius: 4px; padding: 0 5px; font-weight: 700; font-size: 0.72em; }
+  /* only quality sessions carry color; easy days stay plain, off days are ghosts */
+  .cell.tempo { border-left: 3px solid #fbbf24; }
+  .cell.intervals { border-left: 3px solid #f87171; }
+  .cell.race { border-left: 3px solid #22c55e; }
+  .cell.long { border-left: 3px solid #a78bfa; }
+  .cell.off { background: transparent; border: 1px dashed #2c333d; position: relative; }
+  .cell.off .rest { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #5b6572; font-size: 0.8em; letter-spacing: 0.12em; }
+  .mchip { background: #e6e6e6; color: #0b0e12; border-radius: 4px; padding: 0 6px; font-weight: 700; font-size: 0.78em; }
+  .cellhead { display: flex; gap: 6px; align-items: baseline; margin-bottom: 5px; }
+  .dnum { font-weight: 700; font-size: 0.95em; color: #cfd6dd; }
+  .cell.off .dnum { color: #5b6572; font-weight: 400; }
+  .dmon { color: #9aa4b0; font-size: 0.72em; }
+  .dw { display: none; color: #9aa4b0; font-size: 0.72em; }
+  .cellhead .st { margin-left: auto; font-weight: 700; font-size: 0.85em; }
+  .st.ok { color: #4ade80; } .st.miss { color: #f87171; } .st.part { color: #fbbf24; }
+  .work { font-size: 0.78em; line-height: 1.45; flex: 1; }
+  .pace { color: #7fd1ff; }
+  .foot { color: #8a93a0; font-size: 0.72em; margin-top: 6px; }
+  @media (max-width: 700px) {
+    .wkgrid { grid-template-columns: 1fr; } .cell { min-height: 0; }
+    .dowhead { display: none; } .dw { display: inline; }
+  }
+
+  /* stats tab */
+  .statshead { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .statshead .info { border-radius: 50%; width: 30px; height: 30px; padding: 0; font-family: Georgia, serif; font-style: italic; font-weight: 700; margin-left: auto; }
+  .pacegrid { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+  .card { background: #1a1f26; border: 1px solid #2c333d; border-radius: 10px; padding: 6px 16px; }
+  table { border-collapse: collapse; }
+  #zones, #effortstbl { width: 100%; min-width: 420px; }
+  td { padding: 8px 10px; border-top: 1px solid #262d36; font-size: 0.9em; }
+  tr:first-child td { border-top: none; }
+  th { color: #9aa4b0; text-align: left; font-weight: 600; font-size: 0.78em; padding: 8px 10px 4px; }
+  .n { text-align: right; }
+  #zones .pct { color: #9aa4b0; white-space: nowrap; text-align: right; }
+  .zpace { color: #7fd1ff; font-weight: 600; white-space: nowrap; text-align: right; }
+  #zones tr.race td { background: #21313f; }
+  .kv { min-width: 300px; }
+  .kv td:first-child { color: #9aa4b0; padding-right: 20px; }
+  .kv td:last-child { text-align: right; font-weight: 600; }
+  .okdot { color: #4ade80; }
+  .note { color: #8a93a0; font-size: 0.8em; margin-top: 14px; }
+
+  /* mileage viz */
+  #mileview { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+  .mileft { flex: 1 1 520px; min-width: 420px; max-width: 780px; }
+  .miright { flex: 0 1 390px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 64px; }
+  .alhead { font-weight: 600; font-size: 0.92em; padding: 8px 0 10px; }
+  .alhead .sub2 { color: #9aa4b0; font-weight: 400; font-size: 0.85em; }
+  .lg { display: inline-block; width: 18px; vertical-align: middle; margin: 0 4px 2px 10px; }
+  .lg.thin { border-top: 1px solid #2f6fae; opacity: 0.8; }
+  .lg.bold { border-top: 3px solid #4da3ff; }
+  .alrow { color: #cfd6dd; font-size: 0.84em; padding: 5px 0 8px; line-height: 1.45; }
+  .alrow b { color: #e6e6e6; }
+  .alrow.ok2 { color: #86efac; }
+  .warn { color: #fbbf24; cursor: default; }
+  .sevbar { display: inline-flex; gap: 2px; margin-right: 7px; vertical-align: middle; }
+  .sevbar i { width: 7px; height: 11px; background: #262d36; border-radius: 2px; display: inline-block; }
+  .mgroup { background: #1a1f26; border: 1px solid #2c333d; border-radius: 10px; padding: 12px 16px 10px; margin-bottom: 12px; }
+  .mghead { display: flex; align-items: baseline; margin-bottom: 6px; }
+  .mghead .mtot { margin-left: auto; color: #9aa4b0; font-size: 0.85em; }
+  .mbarwrap { background: #12161b; border-radius: 4px; height: 6px; margin-bottom: 8px; }
+  .mbar { background: #4da3ff; height: 6px; border-radius: 4px; }
+  .wtbl { width: 100%; border-collapse: collapse; }
+  .wtbl th { padding: 6px 8px 3px; }
+  .wtbl td { padding: 6px 8px; border-top: 1px solid #21262e; font-size: 0.84em; }
+  .wtbl tr:nth-child(2) td { border-top: none; }
+  .mlab { color: #9aa4b0; white-space: nowrap; width: 64px; }
+  .barcell { width: 250px; }
+  .barwrap { background: #12161b; border-radius: 4px; height: 16px; position: relative; }
+  .bar { background: #2f6fae; height: 16px; border-radius: 4px; }
+  .bar.best { background: #22c55e; }
+  .cap { position: absolute; top: 3px; bottom: 3px; width: 1px; background: #9aa4b0; opacity: 0.6; }
+  .capval { position: absolute; right: 8px; top: 0; line-height: 16px; font-size: 0.72em; color: #9aa4b0; }
+  .barval { position: absolute; left: 8px; top: 0; font-size: 0.82em; line-height: 16px; color: #fff; }
+  .z { color: #5b6572; }
+  .hi { color: #4ade80; font-weight: 600; }
+  @media (max-width: 700px) { .barcell { width: 120px; } .wtbl td { font-size: 0.74em; padding: 5px 5px; } }
+
+  /* tips modal */
+  .modalbg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 20; }
+  .modal { background: #1a1f26; border: 1px solid #2c333d; border-radius: 12px; padding: 18px 22px; max-width: 540px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+  .mhead { display: flex; align-items: baseline; font-weight: 600; margin-bottom: 10px; }
+  .mhead .x { margin-left: auto; cursor: pointer; color: #9aa4b0; font-size: 1.3em; line-height: 1; }
+  .modal ul { margin: 0; padding-left: 18px; color: #cfd6dd; font-size: 0.9em; line-height: 1.6; }
+  .modal li { margin-bottom: 8px; }
+  .modal li::marker { color: #4da3ff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1 id="title">Training plan</h1>
+<div class="sub" id="anchor"></div>
+<div class="tabs">
+  <button id="tab-brant" onclick="selectPlan('brant')">Brant</button>
+  <button id="tab-davis" onclick="selectPlan('davis')">Full-Spectrum</button>
+  <button id="tab-stats" onclick="setView('stats')">Stats</button>
+  <button id="syncbtn" onclick="doSync()">Sync Garmin</button>
+</div>
+<div id="syncout"></div>
+<div class="banner" id="banner" style="display:none"></div>
+<div id="planview">
+  <div class="pager" id="pager"></div>
+  <div class="dowhead"><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span></div>
+  <div id="cal"></div>
+</div>
+<div id="statsview" style="display:none">
+  <div class="statshead">
+    <div class="pager" style="margin:0">
+      <button id="st-fitness" onclick="setStat('fitness')">Fitness</button>
+      <button id="st-mileage" onclick="setStat('mileage')">Mileage</button>
+    </div>
+    <button id="recalc" onclick="doRecalc()">&#8635; Recalculate paces</button>
+    <button class="info" onclick="openTips()" title="plan tips">i</button>
+  </div>
+  <div id="fitview">
+    <div class="pacegrid">
+      <div class="card"><table id="zones"></table></div>
+      <div>
+        <div class="card" style="margin-bottom:14px"><table class="kv" id="anchortbl"></table></div>
+        <div class="card"><table class="kv" id="healthtbl"></table></div>
+      </div>
+      <div class="card"><table id="effortstbl"></table></div>
+    </div>
+    <div class="note" id="pacenote"></div>
+  </div>
+  <div id="mileview" style="display:none">
+    <div class="mileft" id="mgroups"></div>
+    <div class="miright">
+      <div class="card">
+        <div class="alhead">Avg pace by week <span class="sub2"><i class="lg thin"></i>weekly pace<i class="lg bold"></i>4-week avg · up = faster</span></div>
+        <div id="pchart"></div>
+      </div>
+      <div class="card">
+        <div class="alhead">Watch list <span class="sub2">— volume spikes &amp; HR anomalies</span></div>
+        <div id="alerts"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tipsbg" class="modalbg" onclick="closeTips()" style="display:none">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="mhead">Plan tips<span class="x" onclick="closeTips()">&times;</span></div>
+    <ul id="tipslist"></ul>
+  </div>
+</div>
+</div>
+<script>
+const saved = JSON.parse(sessionStorage.getItem("view") || "{}");
+let DATA = null, STATS = null, EFFORTS = null, planKey = saved.plan || null;
+let view = saved.view === "paces" ? "stats" : (saved.view || "plan");
+let stat = saved.stat || "fitness";
+let page = Number.isInteger(saved.page) ? saved.page : null;
+const PER = 4;
+const MARK = { X: ["ok", "✓"], ".": ["miss", "✗"], "~": ["part", "~"], "-": ["", ""], upcoming: ["", ""] };
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function saveState() { sessionStorage.setItem("view", JSON.stringify({ plan: planKey, view, page, stat })); }
+
+function fmtPace(s) {
+  const m = Math.floor(s / 60), sec = Math.round(s % 60);
+  return sec === 60 ? `${m + 1}:00/km` : `${m}:${String(sec).padStart(2, "0")}/km`;
+}
+
+function buildWeek(w) {
+  const cells = w.days.map(d => {
+    const [cls, sym] = MARK[d.status] || ["", ""];
+    const today = d.date === DATA.today;
+    const dnum = parseInt(d.date.slice(8), 10);
+    const mon = MONTHS[parseInt(d.date.slice(5, 7), 10) - 1];
+    const datebit = dnum === 1
+      ? `<span class="mchip">1 ${mon}</span>`  // month change - make it pop
+      : `<span class="dnum">${dnum}</span>${today ? `<span class="dmon">${mon}</span>` : ""}`;
+    const head = `<div class="cellhead"><span class="dw">${d.day.toUpperCase()}</span>${datebit}` +
+      `${today ? ' <span class="tdy">TODAY</span>' : ""}<span class="st ${cls}">${sym}</span></div>`;
+    if (d.type === "off")
+      return `<div class="cell off${today ? " today" : ""}">${head}<span class="rest">rest</span></div>`;
+    const txt = d.text.replace(/\[([^\]]+)\]/g, '<span class="pace">$1</span>');
+    const foot = [
+      d.km ? d.km + " km" : "",
+      d.est ? "~" + d.est : "",
+      d.actual_km > 0 ? "ran " + d.actual_km : "",
+    ].filter(Boolean).join(" · ");
+    return `<div class="cell ${d.type}${today ? " today" : ""}">${head}
+      <div class="work">${txt}</div>${foot ? `<div class="foot">${foot}</div>` : ""}</div>`;
+  }).join("");
+  return `<div class="wkrow">
+    <div class="wkhead${w.week === DATA.current_week ? " cur" : ""}"><b>Week ${w.week}</b> · ${w.phase} ·
+      ~${w.volume_km} km planned${w.actual_km ? `, ${w.actual_km} km run` : ""}</div>
+    <div class="wkgrid">${cells}</div></div>`;
+}
+
+function renderCal() {
+  const chunks = [];
+  for (let i = 0; i < DATA.weeks.length; i += PER) chunks.push(DATA.weeks.slice(i, i + PER));
+  const curBlock = Math.floor((DATA.current_week - 1) / PER);
+  if (page === null || page >= chunks.length) page = curBlock;
+  document.getElementById("pager").innerHTML =
+    `<span class="pglabel">Week</span>` +
+    `<button onclick="setPage(${page - 1})" ${page === 0 ? "disabled" : ""}>&lsaquo;</button>` +
+    chunks.map((c, i) =>
+      `<button class="${i === page ? "sel" : ""}${i === curBlock ? " cur" : ""}" onclick="setPage(${i})">` +
+      `${c[0].week}–${c[c.length - 1].week}</button>`).join("") +
+    `<button onclick="setPage(${page + 1})" ${page === chunks.length - 1 ? "disabled" : ""}>&rsaquo;</button>`;
+  document.getElementById("cal").innerHTML = chunks[page].map(buildWeek).join("");
+}
+
+function setPage(p) { page = p; saveState(); renderCal(); window.scrollTo(0, 0); }
+
+function renderPaces() {
+  document.getElementById("zones").innerHTML = DATA.legend.map(z =>
+    `<tr class="${z.pct === '100%' ? 'race' : ''}">
+       <td>${z.label}</td><td class="pct">${z.pct}</td><td class="zpace">${z.pace}</td></tr>`).join("");
+  document.getElementById("anchortbl").innerHTML = DATA.anchor_rows.map(r =>
+    `<tr><td>${r.k}</td><td class="${r.k.startsWith('Base pace') ? 'zpace' : ''}">${r.v}</td></tr>`).join("");
+  const step = (DATA.base_pace_s_per_km / 100).toFixed(1);
+  document.getElementById("pacenote").textContent =
+    `100% = 10k pace · every 1% ≈ ${step} s/km · above 100% is faster, below is slower`;
+}
+
+function renderStats() {
+  if (!STATS) return;
+  document.getElementById("healthtbl").innerHTML = STATS.health.map(r =>
+    `<tr><td>${r.k}</td><td>${r.v}</td></tr>`).join("") ||
+    "<tr><td>no data — sync first</td></tr>";
+  renderMileage();
+}
+
+function renderEfforts() {
+  const head = `<tr><th>Best efforts (${EFFORTS ? EFFORTS.window_days : 56}d)</th>
+    <th class="n">time</th><th class="n">pace</th><th class="n">VDOT</th><th class="n">HR</th><th class="n">date</th></tr>`;
+  if (!EFFORTS) {
+    document.getElementById("effortstbl").innerHTML = head + `<tr><td colspan="6">computing from GPS streams…</td></tr>`;
+    return;
+  }
+  const rows = EFFORTS.efforts.map(e =>
+    `<tr><td>${e.dist}${e.anchor_grade ? ' <span class="okdot" title="race-grade HR — anchor-worthy">●</span>' : ""}</td>
+     <td class="n">${e.time}</td><td class="n">${e.pace}</td><td class="n">${e.vdot}</td>
+     <td class="n">${e.hr ?? "-"}</td><td class="n">${e.date.slice(5)}</td></tr>`).join("");
+  document.getElementById("effortstbl").innerHTML = head + (rows || `<tr><td colspan="6">no stream data in window</td></tr>`);
+}
+
+function paceChart(weeksChron) {
+  const pts = weeksChron.filter(w => w.pace_s);
+  if (pts.length < 3) return "<div class='note'>not enough pace data yet</div>";
+  const W = 360, H = 195, L = 44, R = 10, T = 12, B = 24;
+  const roll = pts.map((_, i) => {
+    const s = pts.slice(Math.max(0, i - 3), i + 1);
+    return s.reduce((a, b) => a + b.pace_s, 0) / s.length;
+  });
+  const vals = pts.map(p => p.pace_s).concat(roll);
+  const lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.08 || 10;
+  const yv = v => T + (v - lo + pad) / (hi - lo + 2 * pad) * (H - T - B);  // faster = up
+  const xv = i => L + i * (W - L - R) / (pts.length - 1);
+  const line = a => a.map((v, i) => `${xv(i).toFixed(1)},${yv(v).toFixed(1)}`).join(" ");
+  const grid = [lo, (lo + hi) / 2, hi].map(v =>
+    `<line x1="${L}" y1="${yv(v).toFixed(1)}" x2="${W - R}" y2="${yv(v).toFixed(1)}" stroke="#262d36"/>
+     <text x="${L - 6}" y="${(yv(v) + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#9aa4b0">${fmtPace(v).replace("/km", "")}</text>`).join("");
+  const firstOfMonth = pts.map((p, i) => ({ m: p.week.slice(5, 7), i }))
+    .filter((d, k, a) => k === 0 || d.m !== a[k - 1].m);
+  const xlab = firstOfMonth.filter((_, k) => k % 2 === 0).map(d =>
+    `<text x="${xv(d.i).toFixed(1)}" y="${H - 8}" font-size="9" fill="#9aa4b0">${MONTHS[parseInt(pts[d.i].week.slice(5, 7), 10) - 1]}</text>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%">${grid}${xlab}
+    <polyline points="${line(pts.map(p => p.pace_s))}" fill="none" stroke="#2f6fae" stroke-width="1" opacity="0.7"/>
+    <polyline points="${line(roll)}" fill="none" stroke="#4da3ff" stroke-width="2.2"/></svg>`;
+}
+
+// a week belongs to the month holding its Thursday (majority of its days);
+// "2026-06-29" -> Thursday Jul 2 -> "Week 1 · Jul"
+const weekThu = iso => { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + 3); return d; };
+const weekLabel = iso => {
+  const t = weekThu(iso);
+  return `Week ${Math.floor((t.getDate() - 1) / 7) + 1} · ${MONTHS[t.getMonth()]}`;
+};
+
+function sevSquares(s) {
+  const color = s >= 4 ? "#ef4444" : s === 3 ? "#fb923c" : "#fbbf24";
+  return `<span class="sevbar" title="severity ${s}/5">` +
+    [1, 2, 3, 4, 5].map(i => `<i${i <= s ? ` style="background:${color}"` : ""}></i>`).join("") + `</span>`;
+}
+
+function renderMileage() {
+  const weeks = [...STATS.weekly].reverse();  // chronological, for week numbering
+  const byMonth = {}, order = [];
+  for (const w of weeks) {
+    const t = weekThu(w.week);
+    const mk = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}`;
+    if (!byMonth[mk]) { byMonth[mk] = []; order.push(mk); }
+    byMonth[mk].push(w);
+  }
+  order.reverse();  // newest month first
+  const maxKm = Math.max(...weeks.map(w => w.km), 1);  // one scale across all bars
+  const totals = {};
+  for (const mk of order) totals[mk] = {
+    km: Math.round(byMonth[mk].reduce((a, w) => a + w.km, 0) * 10) / 10,
+    runs: byMonth[mk].reduce((a, w) => a + w.runs, 0),
+  };
+  const monthMax = Math.max(...order.map(mk => totals[mk].km), 1);
+  document.getElementById("mgroups").innerHTML = order.map(mk => {
+    const wks = byMonth[mk];
+    const bestKm = Math.max(...wks.map(w => w.km), 0);
+    const bestLong = Math.max(...wks.map(w => w.longest), 0);
+    const name = `${MONTHS[parseInt(mk.slice(5), 10) - 1]} ${mk.slice(0, 4)}`;
+    const rows = wks.map((w, i) => `
+      <tr>
+        <td class="mlab">Week ${i + 1}${w.flags.length ? ` <span class="warn" title="${w.flags.map(f => f.text).join("&#10;")}">⚠</span>` : ""}</td>
+        <td class="barcell"><div class="barwrap">
+          ${w.km > 0 ? `<div class="bar${w.km === bestKm ? " best" : ""}" ${w.km === bestKm ? 'title="biggest week this month"' : ""}
+            style="width:${(w.km / maxKm * 100).toFixed(1)}%"></div>` : ""}
+          ${w.cap ? `<div class="cap" style="left:${Math.min(w.cap / maxKm * 100, 100).toFixed(1)}%"
+            title="safe ceiling ≈ ${w.cap} km (1.4× 3-week avg)"></div>` : ""}
+          ${w.cap && w.week === STATS.weekly[0].week ? `<span class="capval">≤ ${w.cap} km</span>` : ""}
+          <span class="barval${w.km > 0 ? "" : " z"}">${w.km > 0 ? w.km + " km" : "0"}</span></div></td>
+        <td class="n${w.runs ? "" : " z"}">${w.runs || "–"}</td>
+        <td class="n${w.longest > 0 && w.longest === bestLong ? " hi" : ""}${w.longest ? "" : " z"}"
+          ${w.longest > 0 && w.longest === bestLong ? 'title="longest run this month"' : ""}>${w.longest > 0 ? w.longest + " km" : "–"}</td>
+        <td class="n${w.pace === "-" ? " z" : ""}">${w.pace === "-" ? "–" : w.pace}</td>
+        <td class="n${w.hr === "-" ? " z" : ""}">${w.hr === "-" ? "–" : w.hr}</td>
+      </tr>`).join("");
+    return `<div class="mgroup">
+      <div class="mghead"><b>${name}</b><span class="mtot">${totals[mk].km} km · ${totals[mk].runs} runs</span></div>
+      <div class="mbarwrap"><div class="mbar" style="width:${(totals[mk].km / monthMax * 100).toFixed(1)}%"></div></div>
+      <table class="wtbl">
+        <tr><th></th><th>volume</th><th class="n">runs</th><th class="n">longest</th><th class="n">avg pace</th><th class="n">avg HR</th></tr>
+        ${rows}</table></div>`;
+  }).join("");
+  document.getElementById("pchart").innerHTML = paceChart(weeks);
+  const flagged = STATS.weekly.slice(0, 16).filter(w => w.flags.length);
+  document.getElementById("alerts").innerHTML = flagged.length
+    ? flagged.map(w => w.flags.map(f =>
+        `<div class="alrow">${sevSquares(f.sev)}<b>${weekLabel(w.week)}</b> — ${f.text}</div>`).join("")).join("")
+    : `<div class="alrow ok2">✓ no anomalies in the last 16 weeks</div>`;
+}
+
+function loadStats() { fetch("/api/stats").then(r => r.json()).then(s => { STATS = s; renderStats(); }); }
+function loadEfforts() {
+  renderEfforts();  // show "computing…" while it runs
+  fetch("/api/efforts").then(r => r.json()).then(e => { EFFORTS = e; renderEfforts(); });
+}
+
+function setStat(s) {
+  stat = s; saveState();
+  document.getElementById("fitview").style.display = s === "fitness" ? "" : "none";
+  document.getElementById("mileview").style.display = s === "mileage" ? "" : "none";
+  document.getElementById("st-fitness").className = s === "fitness" ? "sel" : "";
+  document.getElementById("st-mileage").className = s === "mileage" ? "sel" : "";
+}
+
+function setView(v) {
+  view = v; saveState();
+  document.getElementById("planview").style.display = v === "plan" ? "" : "none";
+  document.getElementById("statsview").style.display = v === "stats" ? "" : "none";
+  for (const k of ["brant", "davis"])
+    document.getElementById("tab-" + k).className = (v === "plan" && planKey === k) ? "sel" : "";
+  document.getElementById("tab-stats").className = v === "stats" ? "sel" : "";
+  if (v === "stats") {
+    setStat(stat);
+    if (!STATS) loadStats();
+    if (!EFFORTS) loadEfforts();
+  }
+}
+
+function selectPlan(key) { view = "plan"; loadPlan(key); }
+
+function openTips() {
+  document.getElementById("tipslist").innerHTML = (DATA?.tips || []).map(t => `<li>${t}</li>`).join("");
+  document.getElementById("tipsbg").style.display = "flex";
+}
+function closeTips() { document.getElementById("tipsbg").style.display = "none"; }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeTips(); });
+
+function loadPlan(key) {
+  fetch(key ? "/api/plan/" + key : "/api/plan").then(r => r.json()).then(d => {
+    DATA = d; planKey = d.plan_key; saveState();
+    document.getElementById("title").textContent = d.name;
+    document.getElementById("anchor").textContent = "Anchor: " + d.anchor_short;
+    const b = document.getElementById("banner");
+    b.style.display = "block";
+    b.className = "banner " + d.reeval.status;
+    b.innerHTML = `<b>PACE RE-EVALUATION: ${d.reeval.status.toUpperCase()}</b> — ${d.reeval.message}
+      <small>Next coach check-in: ${d.next_checkin}</small>`;
+    renderCal(); renderPaces(); setView(view);
+    const sc = sessionStorage.getItem("scroll");
+    if (sc !== null) { sessionStorage.removeItem("scroll"); window.scrollTo(0, +sc); }
+  });
+}
+
+function doRecalc() {
+  const b = document.getElementById("recalc");
+  b.disabled = true; b.textContent = "Recalculating…";
+  fetch("/api/paces/refresh", { method: "POST" }).then(r => r.json()).then(() => {
+    STATS = null; EFFORTS = null;
+    loadPlan(planKey); loadStats(); loadEfforts();
+    b.textContent = "✓ Up to date · snapshot saved";
+    setTimeout(() => { b.innerHTML = "&#8635; Recalculate paces"; b.disabled = false; }, 2000);
+  }).catch(() => { b.innerHTML = "&#8635; Recalculate paces"; b.disabled = false; });
+}
+
+function doSync() {
+  const btn = document.getElementById("syncbtn"), out = document.getElementById("syncout");
+  btn.disabled = true; btn.textContent = "Syncing...";
+  fetch("/api/sync", { method: "POST" }).then(r => r.json()).then(d => {
+    out.textContent = d.output;
+    btn.disabled = false; btn.textContent = "Sync Garmin";
+    STATS = null; EFFORTS = null;
+    loadPlan(planKey);
+    if (view === "stats") { loadStats(); loadEfforts(); }
+  }).catch(() => { btn.disabled = false; btn.textContent = "Sync Garmin"; out.textContent = "sync failed"; });
+}
+
+loadPlan(planKey);
+
+// hot reload: poll the server's file-version stamp, reload in place when it changes
+let VER = null;
+setInterval(() => fetch("/api/version").then(r => r.json()).then(v => {
+  if (VER === null) VER = v.version;
+  else if (v.version !== VER) {
+    sessionStorage.setItem("scroll", String(window.scrollY));
+    location.reload();
+  }
+}).catch(() => {}), 2000);
+</script>
+</body>
+</html>
