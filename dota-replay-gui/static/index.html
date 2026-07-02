@@ -203,6 +203,17 @@
   <!-- ============ DOWNLOADS ============ -->
   <section id="tab-downloads" style="display:none">
     <div class="panel">
+      <div class="bar">
+        <div class="field" style="flex:1;min-width:280px;max-width:560px">
+          <label>Download by match ID</label>
+          <input type="text" id="midInput" placeholder="Paste a match ID (e.g. 8863091025) and press Enter" autocomplete="off">
+        </div>
+        <button class="go" id="midGo">Download</button>
+        <span class="status" id="midStatus"></span>
+      </div>
+      <div class="hint">Tip: you can paste several IDs at once (separated by spaces, commas, or new lines).</div>
+    </div>
+    <div class="panel">
       <div class="bar"><button class="sec" id="clearDone">Clear finished</button>
         <span class="hint">Streams the .bz2 replay, decompresses to .dem in your replay folder. Auto-refreshing.</span></div>
       <div class="scroll"><div id="dlList"><div class="empty">No downloads yet.</div></div></div>
@@ -282,6 +293,7 @@ $$(".tab").forEach(t=>t.onclick=()=>{
   $$("main > section").forEach(s=>s.style.display="none");
   $("#tab-"+id).style.display="";
   if(id==="replays") loadReplays();
+  if(id==="downloads"){ const mi=$("#midInput"); if(mi) setTimeout(()=>mi.focus(), 0); }
 });
 
 // ---------- hero autocomplete ----------
@@ -750,6 +762,30 @@ const ICON_CANCEL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const ICON_RETRY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
 const ICON_DELETE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
 $("#clearDone").onclick=async()=>{ await api("/api/downloads/clear",{method:"POST"}); pollDownloads(); };
+
+// ---------- download by match id (paste an id, hit Enter) ----------
+// Pull every run of >=6 digits, so "8863091025" works and so does a pasted list
+// ("8863091025, 8861788724"). Dedupe to avoid double-queuing the same id.
+function parseMatchIds(text){
+  const ids = [...String(text||"").matchAll(/\d{6,}/g)].map(m=>+m[0]);
+  return [...new Set(ids)];
+}
+async function downloadByIds(){
+  const inp=$("#midInput"), st=$("#midStatus");
+  const ids=parseMatchIds(inp.value);
+  if(!ids.length){ st.className="status err"; st.textContent="Enter a numeric match ID."; return; }
+  st.className="status"; st.textContent="Queuing…";
+  try{
+    const matches=ids.map(id=>({match_id:id}));  // no custom name — saved as {id}.dem
+    await api("/api/download",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({matches})});
+    st.className="status ok";
+    st.textContent=`Queued ${ids.length} download${ids.length>1?"s":""}: ${ids.join(", ")}`;
+    inp.value="";
+    pollDownloads();
+  }catch(e){ st.className="status err"; st.textContent="Error: "+e.message; }
+}
+$("#midGo").onclick=downloadByIds;
+$("#midInput").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); downloadByIds(); } });
 async function pollDownloads(){
   let rows; try{ rows = await api("/api/downloads"); }catch(e){ return; }
   const active = rows.filter(r=>["queued","resolving","downloading"].includes(r.status)).length;
