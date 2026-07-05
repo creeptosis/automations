@@ -214,6 +214,7 @@ function renderSpend() {
     const exp = r.kind === "expense";
     rows.push(`<tr id="r-${r.kind}-${r.id}"${exp ? ` class="rowlink" onclick="toggleSpend(${r.id}, this)"` : ""}>` +
       `<td>${exp ? `<span class="chev">${ICON.chev}</span>` : ""}${esc(r.name)}${r.est ? ' <span class="pill" title="estimate">≈</span>' : ""}` +
+      `${exp && r.subs.length ? ` <span class="dim">· ${r.subs.length} piece${r.subs.length === 1 ? "" : "s"}</span>` : ""}` +
       `${r.notes ? ` <span class="dim">· ${esc(r.notes)}</span>` : ""}</td>` +
       `<td class="mut">${esc(r.tag)}</td>` +
       `<td class="n">${r.rm != null ? fmt(r.rm) : ""}</td>` +
