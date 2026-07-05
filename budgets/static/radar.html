@@ -45,6 +45,8 @@ function ago(iso) {
   return (d / 30.44).toFixed(1) + " mo ago";
 }
 
+const everyTxt = m => m % 12 === 0 ? `every ${m / 12} yr` : `every ${m} mo`;
+
 function duePill(days, exp) {
   if (days < 0) return `<span class="pill bad">${exp ? "expired" : "overdue"} ${-days}d</span>`;
   return `<span class="pill${days <= 14 ? " warn" : ""}">${exp ? "expires" : "due"} in ${days}d</span>`;
@@ -128,7 +130,7 @@ function render(s) {
       `<td><span class="chev">${ICON.chev}</span>${esc((t.grp ? t.grp + " · " : "") + t.name)}</td>` +
       `<td class="datecell">${t.last ? `${t.last.on_date} <span class="dim">${ago(t.last.on_date)}</span>` : '<span class="dim">never logged</span>'}</td>` +
       `<td class="n mut">${t.last && t.last.cost != null ? fmt(t.last.cost) : ""}</td>` +
-      `<td class="mut">${t.interval_months ? "every " + t.interval_months + " mo — log once to start the clock" : ""}</td>` +
+      `<td class="mut">${t.interval_months ? everyTxt(t.interval_months) + " — log once to start the clock" : ""}</td>` +
       `<td></td></tr>`);
     logs.push(...trackerSubRows(t));
   }

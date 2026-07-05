@@ -69,7 +69,8 @@
           <option value="log">log only</option>
         </optgroup>
       </select>
-      <input name="n_months" type="number" min="1" step="1" placeholder="N months" style="width:95px" hidden>
+      <input name="n_months" type="number" min="1" step="1" placeholder="N" style="width:70px" hidden>
+      <select name="n_unit" hidden><option value="1">months</option><option value="12">years</option></select>
       <label class="chk" id="spend-date"><span id="spend-datetxt">renews</span> <input type="date" name="on"></label>
       <label class="chk" id="spend-est"><input type="checkbox" name="est">≈ estimate</label>
       <input name="notes" placeholder="notes" class="grow">
@@ -91,6 +92,11 @@
     </form>
   </div>
 
+  <h2>tags · rename or delete</h2>
+  <div class="card">
+    <table id="t-tag"></table>
+  </div>
+
 </main>
 <script src="/static/app.js?v=2"></script>
 <script>
@@ -99,6 +105,7 @@ let ROWS = {};         // entity -> id -> row object (for edit)
 
 const MAPPED = ["monthly", "quarterly", "half-yearly", "yearly"];
 const repeatKind = r => MAPPED.includes(r) ? "expense" : "tracker";
+const everyTxt = m => m % 12 === 0 ? `every ${m / 12} yr` : `every ${m} mo`;
 
 const act = (entity, id) =>
   `<td class="act"><a class="iconbtn" onclick="edit('${entity}',${id})" title="edit">${ICON.pen}</a>` +
@@ -145,7 +152,7 @@ function renderSpend() {
     ROWS.tracker[t.id] = t;
     list.push({kind: "tracker", id: t.id, name: t.name, tag: t.grp || "",
                rm: t.expected_cost,
-               rep: t.expires_on ? "fixed expiry" : t.interval_months ? `every ${t.interval_months} mo` : "log only",
+               rep: t.expires_on ? "fixed expiry" : t.interval_months ? everyTxt(t.interval_months) : "log only",
                mo: null, next: t.next_due, days: t.days_to_due});
   }
   list.sort((a, b) => a.tag.localeCompare(b.tag) || a.name.localeCompare(b.name));
@@ -177,6 +184,7 @@ function spendForm() {
   const isExp = repeatKind(r) === "expense";
   el.n_months.hidden = r !== "every-n";
   el.n_months.required = r === "every-n";
+  el.n_unit.hidden = r !== "every-n";
   $("spend-date").hidden = !(isExp || r === "expiry");
   $("spend-datetxt").textContent = r === "expiry" ? "expires" : "renews";
   el.on.required = r === "expiry";
@@ -199,7 +207,9 @@ function editSpend(kind, id) {
     el.repeat.value = row.expires_on ? "expiry" : row.interval_months ? "every-n" : "log";
     el.tag.value = row.grp || "";
     el.amount.value = row.expected_cost ?? "";
-    el.n_months.value = row.interval_months ?? "";
+    const im = row.interval_months;
+    el.n_unit.value = im && im % 12 === 0 ? "12" : "1";
+    el.n_months.value = im == null ? "" : im % 12 === 0 ? im / 12 : im;
     el.on.value = row.expires_on || "";
   }
   el.name.value = row.name;
@@ -230,7 +240,7 @@ $("f-spend").addEventListener("submit", async ev => {
        cadence: r, is_estimate: el.est.checked ? 1 : 0, renews_on: el.on.value,
        notes: el.notes.value}
     : {name: el.name.value.trim(), grp: tag, expected_cost: el.amount.value,
-       interval_months: r === "every-n" ? el.n_months.value : "",
+       interval_months: r === "every-n" ? String((+el.n_months.value || 0) * +el.n_unit.value) : "",
        expires_on: r === "expiry" ? el.on.value : "", notes: el.notes.value};
   try {
     if (f.dataset.edit) {
@@ -296,6 +306,61 @@ async function addContribution(ev, goalId) {
     await load();
   } catch {}
   return false;
+}
+
+// ---- tags: one list covering expense categories and tracker groups
+
+let TAGS = [];
+
+function renderTags() {
+  const m = {};
+  for (const c of S.categories) {
+    const k = c.name.toLowerCase();
+    m[k] = {name: c.name, catId: c.id, expenses: c.items.length, trackers: []};
+  }
+  for (const t of S.trackers) {
+    if (!t.grp) continue;
+    const k = t.grp.toLowerCase();
+    if (!m[k]) m[k] = {name: t.grp, catId: null, expenses: 0, trackers: []};
+    m[k].trackers.push(t.id);
+  }
+  TAGS = Object.values(m).sort((a, b) => a.name.localeCompare(b.name));
+  table("t-tag", TAGS.map((t, i) => {
+    const n = t.expenses + t.trackers.length;
+    return `<tr><td>${esc(t.name)}</td>` +
+      `<td class="n mut">${n ? n + " item" + (n === 1 ? "" : "s") : '<span class="dim">unused</span>'}</td>` +
+      `<td class="act"><a class="iconbtn" onclick="renameTag(${i})" title="rename">${ICON.pen}</a>` +
+      `<a class="iconbtn" onclick="delTag(${i})" title="delete">${ICON.x}</a></td></tr>`;
+  }), "none yet — tags are created as you type them in spending");
+}
+
+async function renameTag(i) {
+  const t = TAGS[i];
+  const to = (prompt("rename tag", t.name) || "").trim();
+  if (!to || to === t.name) return;
+  if (t.catId && TAGS.some(x => x.catId && x.catId !== t.catId && x.name.toLowerCase() === to.toLowerCase())) {
+    toast("that tag already exists — retag the items instead");
+    return;
+  }
+  try {
+    if (t.catId) await api("PUT", "/api/category/" + t.catId, {name: to});
+    for (const id of t.trackers) await api("PUT", "/api/tracker/" + id, {grp: to});
+  } catch {}
+  await load();
+}
+
+async function delTag(i) {
+  const t = TAGS[i];
+  if (t.expenses) {
+    toast(`${t.expenses} spending item${t.expenses === 1 ? " is" : "s are"} tagged “${t.name}” — retag them first`);
+    return;
+  }
+  if (!confirm(t.trackers.length ? `remove “${t.name}” from its items and delete the tag?` : `delete tag “${t.name}”?`)) return;
+  try {
+    for (const id of t.trackers) await api("PUT", "/api/tracker/" + id, {grp: ""});
+    if (t.catId) await api("DELETE", "/api/category/" + t.catId);
+  } catch {}   // statement rules/txns may still reference it — the toast explains
+  await load();
 }
 
 // ---- payslip: upload → parse on the server → editable preview → save
@@ -489,6 +554,7 @@ async function load() {
   renderIncome();
   renderSpend();
   renderGoals();
+  renderTags();
   payNote();
   unskel();
 }
