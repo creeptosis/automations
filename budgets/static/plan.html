@@ -92,13 +92,25 @@
     </form>
   </div>
 
+  <h2>④ investments · % of income, logged when money moves</h2>
+  <div class="card">
+    <table id="t-invest"></table>
+    <form id="f-investment" class="cardform">
+      <input name="name" placeholder="name (S&amp;P 500…)" required style="width:180px">
+      <input name="pct" type="number" step="0.1" min="0" max="100" placeholder="%" required style="width:70px">
+      <select name="of_gross"><option value="0">of net</option><option value="1">of gross</option></select>
+      <input name="notes" placeholder="notes" class="grow">
+      <button>add</button><a class="cancel">cancel</a>
+    </form>
+  </div>
+
   <h2>tags · rename or delete</h2>
   <div class="card">
     <table id="t-tag"></table>
   </div>
 
 </main>
-<script src="/static/app.js?v=2"></script>
+<script src="/static/app.js?v=3"></script>
 <script>
 let S = null;          // last /api/summary payload
 let ROWS = {};         // entity -> id -> row object (for edit)
@@ -303,6 +315,49 @@ async function addContribution(ev, goalId) {
   try {
     await api("POST", "/api/contribution",
               {goal_id: goalId, on_date: el.on_date.value, amount: el.amount.value});
+    await load();
+  } catch {}
+  return false;
+}
+
+// ---- ④ investments: % of income earmarks; click a row to log actual transfers
+
+function renderInvest() {
+  const rows = [];
+  if (S.investments.length)
+    rows.push(`<tr><th>name</th><th class="n">%</th><th class="n">RM/mo</th><th>notes</th><th></th></tr>`);
+  for (const v of S.investments) {
+    ROWS.investment[v.id] = v;
+    rows.push(`<tr id="r-investment-${v.id}" class="rowlink" onclick="toggleInvest(${v.id}, this)">` +
+      `<td><span class="chev">${ICON.chev}</span>${esc(v.name)} <span class="dim">· ${fmt(v.contributed)} in</span></td>` +
+      `<td class="n">${v.pct}% <span class="mut">of ${v.of_gross ? "gross" : "net"}</span></td>` +
+      `<td class="n">${fmt(v.monthly)}</td><td class="mut">${esc(v.notes)}</td>` +
+      `<td class="act"><a class="iconbtn" onclick="event.stopPropagation();edit('investment',${v.id})" title="edit">${ICON.pen}</a>` +
+      `<a class="iconbtn" onclick="event.stopPropagation();del('investment',${v.id})" title="delete">${ICON.x}</a></td></tr>`);
+    for (const t of v.txns)
+      rows.push(`<tr class="item v${v.id}" hidden><td class="subpad datecell mut">${t.on_date}</td>` +
+        `<td></td><td class="n mut">${fmt(t.amount)}</td><td></td>` +
+        `<td class="act"><a class="iconbtn" onclick="del('invest_txn',${t.id})" title="delete">${ICON.x}</a></td></tr>`);
+    rows.push(`<tr class="item logrow v${v.id}" hidden><td colspan="5" class="subpad">` +
+      `<form class="cardform" style="padding:2px 0 8px;border:none" onsubmit="return addInvestTxn(event,${v.id})">` +
+      `<input type="date" name="on_date" value="${S.as_of}" required>` +
+      `<input type="number" name="amount" step="0.01" min="0" placeholder="RM" required>` +
+      `<button class="sm">log transfer</button></form></td></tr>`);
+  }
+  table("t-invest", rows, "none yet — e.g. S&P 500 · 12% of net");
+}
+
+function toggleInvest(id, row) {
+  row.classList.toggle("open");
+  document.querySelectorAll(".v" + id).forEach(r => r.hidden = !r.hidden);
+}
+
+async function addInvestTxn(ev, investId) {
+  ev.preventDefault();
+  const el = ev.target.elements;
+  try {
+    await api("POST", "/api/invest_txn",
+              {investment_id: investId, on_date: el.on_date.value, amount: el.amount.value});
     await load();
   } catch {}
   return false;
@@ -532,7 +587,7 @@ async function del(entity, id) {
   } catch {}
 }
 
-for (const name of ["income", "deduction", "goal"]) {
+for (const name of ["income", "deduction", "goal", "investment"]) {
   const f = $("f-" + name);
   const btn = f.querySelector("button");
   btn.dataset.add = btn.textContent;
@@ -550,10 +605,11 @@ for (const name of ["income", "deduction", "goal"]) {
 
 async function load() {
   S = await getJSON("/api/summary");
-  ROWS = {income: {}, deduction: {}, expense: {}, tracker: {}, goal: {}, contribution: {}};
+  ROWS = {income: {}, deduction: {}, expense: {}, tracker: {}, goal: {}, contribution: {}, investment: {}};
   renderIncome();
   renderSpend();
   renderGoals();
+  renderInvest();
   renderTags();
   payNote();
   unskel();

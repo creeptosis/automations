@@ -120,6 +120,19 @@ CREATE TABLE IF NOT EXISTS rule (
     keyword TEXT NOT NULL,
     category_id INTEGER NOT NULL REFERENCES category(id)
 );
+CREATE TABLE IF NOT EXISTS investment (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    pct REAL NOT NULL,
+    of_gross INTEGER NOT NULL DEFAULT 0,
+    notes TEXT
+);
+CREATE TABLE IF NOT EXISTS invest_txn (
+    id INTEGER PRIMARY KEY,
+    investment_id INTEGER NOT NULL REFERENCES investment(id) ON DELETE CASCADE,
+    on_date TEXT NOT NULL,
+    amount REAL NOT NULL
+);
 """
 
 DEFAULT_CATEGORIES = [
@@ -396,6 +409,23 @@ def summary():
     incomes, deductions, gross, net, categories, mapped = money_state(con)
     surplus = net - mapped
 
+    # allocation-only investments: pct of income -> RM/mo earmark; money actually
+    # moved is logged per row. No returns/price tracking (locked non-goal).
+    investments = []
+    for r in con.execute("SELECT * FROM investment ORDER BY id"):
+        r = dict(r)
+        base = gross if r["of_gross"] else net
+        r["monthly"] = round(base * r["pct"] / 100, 2)
+        r["contributed"] = round(con.execute(
+            "SELECT COALESCE(SUM(amount), 0) FROM invest_txn WHERE investment_id = ?",
+            (r["id"],)).fetchone()[0], 2)
+        r["txns"] = [dict(x) for x in con.execute(
+            "SELECT * FROM invest_txn WHERE investment_id = ? ORDER BY on_date DESC, id DESC",
+            (r["id"],))]
+        investments.append(r)
+    invest_monthly = sum(i["monthly"] for i in investments)
+    free_monthly = surplus - invest_monthly
+
     trackers = []
     for t in con.execute("SELECT * FROM tracker ORDER BY name"):
         t = dict(t)
@@ -447,13 +477,14 @@ def summary():
         contribs = [dict(r) for r in con.execute(
             "SELECT * FROM contribution WHERE goal_id = ? ORDER BY on_date DESC", (gl["id"],))]
         remaining = gl["target_amount"] - contributed
+        # goals draw on what's left after investment earmarks
         ml = months_left(gl["deadline"])
-        projected = surplus * ml if surplus > 0 else 0.0
+        projected = free_monthly * ml if free_monthly > 0 else 0.0
         goals.append({
             **gl, "contributed": round(contributed, 2), "remaining": round(remaining, 2),
             "months_left": round(ml, 1),
             "required_monthly": round(remaining / ml, 2) if ml > 0 and remaining > 0 else None,
-            "surplus_monthly": round(surplus, 2),
+            "surplus_monthly": round(free_monthly, 2),
             "projected_by_deadline": round(projected, 2),
             "coverage_pct": round(100 * min(projected / remaining, 1.0), 1) if remaining > 0 else 100.0,
             "contributions": contribs,
@@ -473,6 +504,10 @@ def summary():
             span_mo = span_days / 30.44
             contrib = con.execute(
                 "SELECT COALESCE(SUM(amount), 0) FROM contribution"
+                " WHERE on_date > ? AND on_date <= ?",
+                (prev["on_date"], latest["on_date"])).fetchone()[0]
+            contrib += con.execute(
+                "SELECT COALESCE(SUM(amount), 0) FROM invest_txn"
                 " WHERE on_date > ? AND on_date <= ?",
                 (prev["on_date"], latest["on_date"])).fetchone()[0]
             predicted = surplus * span_mo - contrib
@@ -505,6 +540,9 @@ def summary():
         "mapped_pct": round(100 * mapped / net, 1) if net > 0 else None,
         "surplus": round(surplus, 2),
         "surplus_pct": round(100 * surplus / net, 1) if net > 0 else None,
+        "investments": investments,
+        "invest_monthly": round(invest_monthly, 2),
+        "free_monthly": round(free_monthly, 2),
         "upcoming": upcoming,
         "goals": goals,
         "trackers": trackers,
@@ -1049,14 +1087,17 @@ ENTITIES = {
     "contribution": (["goal_id", "on_date", "amount"], ["goal_id", "on_date", "amount"]),
     "tracker":      (["name", "grp", "interval_months", "expires_on", "expected_cost", "notes"], ["name"]),
     "entry":        (["tracker_id", "on_date", "cost", "note"], ["tracker_id", "on_date"]),
+    "investment":   (["name", "pct", "of_gross", "notes"], ["name", "pct"]),
+    "invest_txn":   (["investment_id", "on_date", "amount"], ["investment_id", "on_date", "amount"]),
     "checkin":      (["on_date", "balance", "note"], ["on_date", "balance"]),
     "rule":         (["keyword", "category_id"], ["keyword", "category_id"]),
     "txn":          (["category_id"], ["category_id"]),   # manual category override
     "statement":    ([], []),                              # delete-only via API
 }
 
-NUMERIC = {"gross_monthly", "amount_monthly", "amount", "target_amount", "expected_cost", "cost", "balance"}
-INTEGER = {"income_id", "category_id", "goal_id", "sort", "is_estimate", "tracker_id", "interval_months", "yearly"}
+NUMERIC = {"gross_monthly", "amount_monthly", "amount", "target_amount", "expected_cost", "cost", "balance", "pct"}
+INTEGER = {"income_id", "category_id", "goal_id", "sort", "is_estimate", "tracker_id", "interval_months", "yearly",
+           "of_gross", "investment_id"}
 DATES = {"renews_on", "deadline", "on_date", "expires_on"}
 
 
@@ -1086,6 +1127,8 @@ def clean(entity, data, creating):
         out[c] = v
     if out.get("cadence") is not None and out["cadence"] not in CADENCE_MONTHS:
         raise ValueError("cadence must be one of: " + ", ".join(CADENCE_MONTHS))
+    if out.get("pct") is not None and out["pct"] > 100:
+        raise ValueError("pct must be 0-100")
     return out
 
 
@@ -1172,14 +1215,15 @@ def radar():
     return send_from_directory(app.static_folder, "radar.html")
 
 
-@app.get("/month")
-def month():
-    return send_from_directory(app.static_folder, "month.html")
+@app.get("/savings")
+def savings():
+    return send_from_directory(app.static_folder, "savings.html")
 
 
 # pre-restructure tab urls (bookmarks, muscle memory) keep landing somewhere sane
 for _old, _new in (("/manage", "/plan"), ("/subs", "/radar"), ("/life", "/radar"),
-                   ("/history", "/month"), ("/reconcile", "/month")):
+                   ("/history", "/savings"), ("/reconcile", "/savings"),
+                   ("/month", "/savings")):
     app.add_url_rule(_old, "legacy_" + _old.strip("/"),
                      (lambda target: lambda: redirect(target))(_new))
 

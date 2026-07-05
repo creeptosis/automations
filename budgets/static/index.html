@@ -54,7 +54,7 @@
   </div>
 
 </main>
-<script src="/static/app.js?v=2"></script>
+<script src="/static/app.js?v=3"></script>
 <script>
 const SEG = ["#5e8ef7", "#8b7cf6", "#c07af0", "#e57ab1", "#ef9366", "#e3bb56", "#56b4d3", "#6aa9e9", "#9d8ef2", "#d98a8a"];
 
@@ -123,6 +123,14 @@ function waterfall(s) {
   }
   rows.push(`<tr class="total surplus${s.surplus < 0 ? " neg" : ""}"><td>surplus</td>` +
             `<td class="n">${fmt(s.surplus)}</td><td class="pct">${pc(s.surplus_pct)}</td></tr>`);
+  if (s.investments.length) {
+    for (const v of s.investments)
+      rows.push(`<tr><td class="subpad mut">→ ${esc(v.name)}</td>` +
+                `<td class="n mut">${fmt(v.monthly)}</td>` +
+                `<td class="pct">${v.pct}% of ${v.of_gross ? "gross" : "net"}</td></tr>`);
+    rows.push(`<tr class="total"><td>free for goals</td><td class="n">${fmt(s.free_monthly)}</td>` +
+              `<td class="pct">${s.net > 0 ? pc(100 * s.free_monthly / s.net) : ""}</td></tr>`);
+  }
   $("waterfall").innerHTML = rows.join("");
 }
 

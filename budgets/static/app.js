@@ -24,7 +24,7 @@ const LOGO = '<svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-h
 
 (function mountNav() {
   const links = [["/", "budget", "home"], ["/plan", "plan", "plan"],
-                 ["/radar", "radar", "radar"], ["/month", "month", "month"]];
+                 ["/radar", "radar", "radar"], ["/savings", "savings", "savings"]];
   const here = document.body.dataset.page;
   $("top").innerHTML = '<div class="nav-inner"><a class="brand" href="/">' + LOGO + "Budget</a><nav>" +
     links.map(([href, label, key]) =>

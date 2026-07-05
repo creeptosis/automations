@@ -13,7 +13,7 @@ Commands live in `..\bin` and are on PATH via forwarders in `C:\Users\etern\bin`
 Manual fallback: `python scripts/gui.py`.
 
 Four tabs, one per question (restructured 2026-07-05; the old /manage, /subs, /life,
-/history and /reconcile URLs redirect to their new homes):
+/history, /reconcile and /month URLs redirect to their new homes):
 
 - `/` (home) — decide: gross -> deductions -> net -> categories (RM + % of net) -> surplus,
   goal pacing ("surplus gives RM X/mo -> RM Y by deadline"), and upcoming non-monthly
@@ -32,17 +32,27 @@ Four tabs, one per question (restructured 2026-07-05; the old /manage, /subs, /l
   already cover, so no double-counting). The tag is typed inline (datalist of existing
   categories + groups); new category names are created on the fly - no categories card.
   ③ goals: click a goal to see and log its contributions inline.
+  ④ investments: allocation-only earmarks as % of net (or gross) income -> RM/mo,
+  e.g. "S&P 500 · 12% of net". Home's waterfall splits the surplus into earmarks and
+  "free for goals"; goal pacing draws on the free part; click a row to log actual
+  transfers (which drift nets out, same as goal contributions). No returns/price
+  tracking - conservative estimates only, later, per the locked scope.
+  Plus a "tags" section at the bottom: rename or delete any tag (expense category
+  or tracker group) with usage counts; deletes are refused while items still use it.
 - `/radar` — everything dated on one timeline, soonest first: expense renewals and
   tracker dues/expiries together. Tracker rows expand in place to log a renewal
   (expiry items offer "new expiry" in the same form - road tax renewals are one row);
   logging a past date backfills "last changed". Below it, the log-only list answers
   "when did I last ..." (haircut, running shoes). Definitions are edited in /plan.
-- `/month` — what actually happened: bank check-ins (once a month) with the drift
-  verdict (bank moved vs plan predicted, net of goal contributions), statement CSV
-  upload with keyword rules (teach once, applies forever), actual vs plan per
-  category, and auto-closed month snapshots. Never required - skip it and the app
-  works exactly as before. PDF statements: drop one sample in `samples/` (gitignored)
-  and the exact parser gets built against it.
+- `/savings` — the projection, front and centre: net − plan = surplus/mo, carried
+  forward ("by Dec 31" / "in 12 months"), anchored in real ringgit once a monthly
+  balance check-in is logged (money moved to goals/investments stays counted as
+  savings). Below it: check-ins with the drift verdict (bank moved vs plan
+  predicted, net of transfers), statement CSV upload with keyword rules (teach
+  once, applies forever), actual vs plan per category, and auto-closed month
+  snapshots. Never required beyond the one check-in - skip the rest and the app
+  works exactly as before. PDF statements: drop one sample in `samples/`
+  (gitignored) and the exact parser gets built against it.
 
 Money model (locked 2026-07-05): exact recurring items (subscriptions, rent, insurance,
 with real renewal dates) + lump-sum monthly estimates (food, personal). No per-transaction
