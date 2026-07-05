@@ -113,12 +113,33 @@
   .barwrap { background: #12161b; border-radius: 4px; height: 16px; position: relative; }
   .bar { background: #2f6fae; height: 16px; border-radius: 4px; }
   .bar.best { background: #22c55e; }
-  .cap { position: absolute; top: 3px; bottom: 3px; width: 1px; background: #9aa4b0; opacity: 0.6; }
-  .capval { position: absolute; right: 8px; top: 0; line-height: 16px; font-size: 0.72em; color: #9aa4b0; }
+  .bar-over { position: absolute; top: 0; height: 16px; border-radius: 0 4px 4px 0; }
+  .cap { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; opacity: 0.5; }
+  .capcell { font-size: 0.82em; color: #c0c8d4; margin-top: 4px; text-align: right; }
   .barval { position: absolute; left: 8px; top: 0; font-size: 0.82em; line-height: 16px; color: #fff; }
   .z { color: #5b6572; }
   .hi { color: #4ade80; font-weight: 600; }
   @media (max-width: 700px) { .barcell { width: 120px; } .wtbl td { font-size: 0.74em; padding: 5px 5px; } }
+
+  /* activities tab */
+  .actbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .actbar input { background: #1e242c; border: 1px solid #2c333d; color: #e6e6e6; border-radius: 6px; padding: 6px 10px; font-size: 0.85em; margin-left: auto; width: 160px; }
+  .actbar input::placeholder { color: #5b6572; }
+  .actsum { color: #9aa4b0; font-size: 0.85em; margin-bottom: 10px; }
+  .actcard { padding: 2px 12px; overflow-x: auto; }
+  #acttbl { width: 100%; }
+  #acttbl th { cursor: pointer; user-select: none; white-space: nowrap; }
+  #acttbl th.on { color: #4da3ff; }
+  #acttbl td { white-space: nowrap; }
+  #acttbl td.aname { white-space: normal; width: 100%; min-width: 160px; }
+  .typechip { background: #2b3a4d; color: #9fc1e8; border-radius: 4px; padding: 0 6px; font-size: 0.8em; margin-left: 6px; white-space: nowrap; }
+  .diffchip { border-radius: 4px; padding: 1px 8px; font-size: 0.84em; font-weight: 600; white-space: nowrap; }
+  .d1 { background: #12241a; color: #4ade80; }
+  .d2 { background: #16283b; color: #7fd1ff; }
+  .d3 { background: #2a2313; color: #fbbf24; }
+  .d4 { background: #2a1a10; color: #fb923c; }
+  .d5 { background: #2a1515; color: #f87171; }
+  .loadn { color: #8a93a0; font-size: 0.8em; margin-left: 6px; }
 
   /* tips modal */
   .modalbg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 20; }
@@ -138,6 +159,7 @@
   <button id="tab-brant" onclick="selectPlan('brant')">Brant</button>
   <button id="tab-davis" onclick="selectPlan('davis')">Full-Spectrum</button>
   <button id="tab-stats" onclick="setView('stats')">Stats</button>
+  <button id="tab-acts" onclick="setView('acts')">Activities</button>
   <button id="syncbtn" onclick="doSync()">Sync Garmin</button>
 </div>
 <div id="syncout"></div>
@@ -181,6 +203,22 @@
     </div>
   </div>
 </div>
+<div id="actview" style="display:none">
+  <div class="actbar">
+    <div class="pager" style="margin:0" id="f-surface">
+      <button data-v="all">All</button><button data-v="out">Outdoor</button><button data-v="in">Indoor</button>
+    </div>
+    <div class="pager" style="margin:0" id="f-period">
+      <button data-v="4w">4 wk</button><button data-v="3m">3 mo</button><button data-v="1y">1 yr</button><button data-v="all">All time</button>
+    </div>
+    <div class="pager" style="margin:0" id="f-effort">
+      <button data-v="0">Any effort</button><button data-v="1">easy</button><button data-v="2">moderate</button><button data-v="3">hard</button><button data-v="4">very hard</button><button data-v="5">max</button>
+    </div>
+    <input id="f-q" placeholder="search name…">
+  </div>
+  <div class="actsum" id="actsum"></div>
+  <div class="card actcard"><table id="acttbl"></table></div>
+</div>
 <div id="tipsbg" class="modalbg" onclick="closeTips()" style="display:none">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="mhead">Plan tips<span class="x" onclick="closeTips()">&times;</span></div>
@@ -190,15 +228,17 @@
 </div>
 <script>
 const saved = JSON.parse(sessionStorage.getItem("view") || "{}");
-let DATA = null, STATS = null, EFFORTS = null, planKey = saved.plan || null;
+let DATA = null, STATS = null, EFFORTS = null, ACTS = null, planKey = saved.plan || null;
 let view = saved.view === "paces" ? "stats" : (saved.view || "plan");
 let stat = saved.stat || "fitness";
 let page = Number.isInteger(saved.page) ? saved.page : null;
+const af = Object.assign({ surface: "all", period: "all", effort: 0, q: "" }, saved.af || {});
+let asort = saved.asort || { key: "date", dir: -1 };
 const PER = 4;
 const MARK = { X: ["ok", "✓"], ".": ["miss", "✗"], "~": ["part", "~"], "-": ["", ""], upcoming: ["", ""] };
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-function saveState() { sessionStorage.setItem("view", JSON.stringify({ plan: planKey, view, page, stat })); }
+function saveState() { sessionStorage.setItem("view", JSON.stringify({ plan: planKey, view, page, stat, af, asort })); }
 
 function fmtPace(s) {
   const m = Math.floor(s / 60), sec = Math.round(s % 60);
@@ -347,13 +387,13 @@ function renderMileage() {
     const rows = wks.map((w, i) => `
       <tr>
         <td class="mlab">Week ${i + 1}${w.flags.length ? ` <span class="warn" title="${w.flags.map(f => f.text).join("&#10;")}">⚠</span>` : ""}</td>
-        <td class="barcell"><div class="barwrap">
-          ${w.km > 0 ? `<div class="bar${w.km === bestKm ? " best" : ""}" ${w.km === bestKm ? 'title="biggest week this month"' : ""}
-            style="width:${(w.km / maxKm * 100).toFixed(1)}%"></div>` : ""}
-          ${w.cap ? `<div class="cap" style="left:${Math.min(w.cap / maxKm * 100, 100).toFixed(1)}%"
-            title="safe ceiling ≈ ${w.cap} km (1.4× 3-week avg)"></div>` : ""}
-          ${w.cap && w.week === STATS.weekly[0].week ? `<span class="capval">≤ ${w.cap} km</span>` : ""}
-          <span class="barval${w.km > 0 ? "" : " z"}">${w.km > 0 ? w.km + " km" : "0"}</span></div></td>
+        <td class="barcell"><div class="barwrap" title="${w.cap ? `safe ceiling: ≤ ${w.cap} km (1.4× 3-week avg)` : ""}">
+          ${w.km > 0 ? `<div class="bar${w.km === bestKm && !(w.cap && w.km > w.cap) ? " best" : ""}"
+            style="width:${(Math.min(w.km, w.cap || w.km) / maxKm * 100).toFixed(1)}%"></div>` : ""}
+          ${w.cap && w.km > w.cap ? (() => { const r = w.km / w.cap; const c = r < 1.1 ? '#f59e0b' : r < 1.2 ? '#f97316' : '#ef4444'; return `<div class="bar-over" style="left:${(w.cap/maxKm*100).toFixed(1)}%;width:${((w.km-w.cap)/maxKm*100).toFixed(1)}%;background:${c}"></div>`; })() : ""}
+          ${w.cap ? `<div class="cap" style="left:${Math.min(w.cap / maxKm * 100, 100).toFixed(1)}%"></div>` : ""}
+          <span class="barval${w.km > 0 ? "" : " z"}">${w.km > 0 ? w.km + " km" : "0"}</span></div>
+          ${w.cap ? `<div class="capcell">≤ ${w.cap} km</div>` : ""}</td>
         <td class="n${w.runs ? "" : " z"}">${w.runs || "–"}</td>
         <td class="n${w.longest > 0 && w.longest === bestLong ? " hi" : ""}${w.longest ? "" : " z"}"
           ${w.longest > 0 && w.longest === bestLong ? 'title="longest run this month"' : ""}>${w.longest > 0 ? w.longest + " km" : "–"}</td>
@@ -375,6 +415,91 @@ function renderMileage() {
     : `<div class="alrow ok2">✓ no anomalies in the last 16 weeks</div>`;
 }
 
+/* ---- activities tab ---- */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmtDate = d => `${parseInt(d.slice(8), 10)} ${MONTHS[parseInt(d.slice(5, 7), 10) - 1]} ${d.slice(2, 4)}`;
+function fmtDur(m) {
+  const t = Math.round(m), h = Math.floor(t / 60);
+  return h ? `${h}h ${String(t % 60).padStart(2, "0")}` : `${t} min`;
+}
+
+const ACOLS = [["date", "date"], ["name", "run"], ["km", "dist"], ["duration_min", "time"],
+               ["pace_s", "pace"], ["avg_hr", "avg HR"], ["pct_max", "%max"], ["load", "effort"]];
+const SORTDEF = { date: -1, name: 1, km: -1, duration_min: -1, pace_s: 1, avg_hr: -1, pct_max: -1, load: -1 };
+
+function setSort(k) {
+  asort = asort.key === k ? { key: k, dir: -asort.dir } : { key: k, dir: SORTDEF[k] };
+  saveState(); renderActs();
+}
+
+function bindActFilters() {
+  for (const [id, key] of [["f-surface", "surface"], ["f-period", "period"], ["f-effort", "effort"]])
+    document.querySelectorAll(`#${id} button`).forEach(b =>
+      b.onclick = () => { af[key] = key === "effort" ? +b.dataset.v : b.dataset.v; saveState(); renderActs(); });
+  const q = document.getElementById("f-q");
+  q.value = af.q;
+  q.oninput = () => { af.q = q.value; saveState(); renderActs(); };
+}
+
+function renderActs() {
+  if (!ACTS) return;
+  for (const [id, key] of [["f-surface", "surface"], ["f-period", "period"], ["f-effort", "effort"]])
+    document.querySelectorAll(`#${id} button`).forEach(b =>
+      b.className = String(af[key]) === b.dataset.v ? "sel" : "");
+
+  const days = { "4w": 28, "3m": 91, "1y": 365 }[af.period];
+  const cutoff = days ? new Date(Date.now() - days * 864e5) : null;
+  const q = af.q.trim().toLowerCase();
+  const rows = ACTS.activities.filter(a =>
+    (af.surface === "all" || (af.surface === "in") === a.indoor) &&
+    (!cutoff || new Date(a.date) >= cutoff) &&
+    (!af.effort || a.effort === af.effort) &&
+    (!q || a.name.toLowerCase().includes(q)));
+  const { key: k, dir } = asort;
+  rows.sort((x, y) => {  // nulls always sink to the bottom
+    const a = x[k], b = y[k];
+    if (a == null || b == null) return (a == null) - (b == null);
+    return (a < b ? -1 : a > b ? 1 : 0) * dir;
+  });
+
+  // pace in the summary uses outdoor runs only (house rule: treadmill pace
+  // is unreliable) — so it's suffixed when the filter mixes both
+  const km = rows.reduce((s, a) => s + a.km, 0);
+  const min = rows.reduce((s, a) => s + (a.duration_min || 0), 0);
+  const out = rows.filter(a => !a.indoor && a.km > 0.5);
+  const okm = out.reduce((s, a) => s + a.km, 0);
+  const omin = out.reduce((s, a) => s + (a.duration_min || 0), 0);
+  document.getElementById("actsum").textContent = rows.length
+    ? `${rows.length} runs · ${Math.round(km)} km · ${fmtDur(min)}` +
+      (okm ? ` · avg pace ${fmtPace(omin * 60 / okm)}${af.surface === "in" ? "" : af.surface === "all" ? " (outdoor)" : ""}` : "")
+    : "no runs match these filters";
+
+  const head = "<tr>" + ACOLS.map(([key, lab]) =>
+    `<th class="${key === k ? "on" : ""}${["date", "name"].includes(key) ? "" : " n"}"
+       onclick="setSort('${key}')">${lab}${key === k ? (dir < 0 ? " ▾" : " ▴") : ""}</th>`).join("") + "</tr>";
+  const body = rows.map(a => {
+    const tip = [a.max_hr ? `max HR ${a.max_hr}` : "", a.elev ? `↑ ${a.elev} m` : "",
+                 a.cadence ? `cadence ${a.cadence}` : "",
+                 a.aerobic_te ? `Garmin aerobic TE ${a.aerobic_te.toFixed(1)}` : ""]
+      .filter(Boolean).join(" · ");
+    const eff = a.effort
+      ? `<span class="diffchip d${a.effort}" title="training load ${a.load} — ${Math.round(a.duration_min)} min at ${a.pct_max}% max HR">${a.effort_label}</span><span class="loadn">${a.load}</span>`
+      : "–";
+    return `<tr title="${esc(tip)}">
+      <td>${fmtDate(a.date)}</td>
+      <td class="aname">${esc(a.name)}${a.type !== "running" ? `<span class="typechip">${a.type.replace("_running", "").replace("_", " ")}</span>` : ""}</td>
+      <td class="n">${a.km ? a.km.toFixed(1) : "–"}</td>
+      <td class="n">${a.duration_min ? fmtDur(a.duration_min) : "–"}</td>
+      <td class="n${a.indoor ? " z" : ""}"${a.indoor ? ' title="treadmill pace — unreliable"' : ""}>${a.pace_s ? fmtPace(a.pace_s) : "–"}</td>
+      <td class="n">${a.avg_hr ?? "–"}</td>
+      <td class="n">${a.pct_max ? a.pct_max + "%" : "–"}</td>
+      <td class="n">${eff}</td></tr>`;
+  }).join("");
+  document.getElementById("acttbl").innerHTML = head + body;
+}
+
+function loadActs() { fetch("/api/activities").then(r => r.json()).then(a => { ACTS = a; renderActs(); }); }
+
 function loadStats() { fetch("/api/stats").then(r => r.json()).then(s => { STATS = s; renderStats(); }); }
 function loadEfforts() {
   renderEfforts();  // show "computing…" while it runs
@@ -393,14 +518,17 @@ function setView(v) {
   view = v; saveState();
   document.getElementById("planview").style.display = v === "plan" ? "" : "none";
   document.getElementById("statsview").style.display = v === "stats" ? "" : "none";
+  document.getElementById("actview").style.display = v === "acts" ? "" : "none";
   for (const k of ["brant", "davis"])
     document.getElementById("tab-" + k).className = (v === "plan" && planKey === k) ? "sel" : "";
   document.getElementById("tab-stats").className = v === "stats" ? "sel" : "";
+  document.getElementById("tab-acts").className = v === "acts" ? "sel" : "";
   if (v === "stats") {
     setStat(stat);
     if (!STATS) loadStats();
     if (!EFFORTS) loadEfforts();
   }
+  if (v === "acts" && !ACTS) loadActs();
 }
 
 function selectPlan(key) { view = "plan"; loadPlan(key); }
@@ -445,12 +573,14 @@ function doSync() {
   fetch("/api/sync", { method: "POST" }).then(r => r.json()).then(d => {
     out.textContent = d.output;
     btn.disabled = false; btn.textContent = "Sync Garmin";
-    STATS = null; EFFORTS = null;
+    STATS = null; EFFORTS = null; ACTS = null;
     loadPlan(planKey);
     if (view === "stats") { loadStats(); loadEfforts(); }
+    if (view === "acts") loadActs();
   }).catch(() => { btn.disabled = false; btn.textContent = "Sync Garmin"; out.textContent = "sync failed"; });
 }
 
+bindActFilters();
 loadPlan(planKey);
 
 // hot reload: poll the server's file-version stamp, reload in place when it changes

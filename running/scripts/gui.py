@@ -8,12 +8,14 @@ computed live from plans/plan.json + data/.
 """
 
 import json
+import math
 import os
 import subprocess
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+import pandas as pd
 from flask import Flask, jsonify, redirect, send_from_directory
 
 import analyze
@@ -360,6 +362,67 @@ def api_efforts():
             "anchor_grade": target in worthy,
         })
     return jsonify({"efforts": efforts, "window_days": analyze.EFFORT_WINDOW_DAYS})
+
+
+# effort score = Banister TRIMP: duration x an exponential of heart-rate
+# reserve, so twenty hard minutes outweigh an hour of jogging. Buckets are
+# quantiles of the athlete's own history - "hard" means hard *for Ben*, and
+# the scale recalibrates itself as fitness and volume evolve.
+EFFORT_LABELS = ["easy", "moderate", "hard", "very hard", "max"]
+EFFORT_QUANTILES = [0.35, 0.65, 0.85, 0.95]
+
+
+def trimp(duration_min, avg_hr, max_hr, rest_hr) -> float | None:
+    if not (duration_min and avg_hr and max_hr and max_hr > rest_hr):
+        return None
+    hrr = min(1.0, max(0.0, (avg_hr - rest_hr) / (max_hr - rest_hr)))
+    return duration_min * hrr * 0.64 * math.exp(1.92 * hrr)
+
+
+@app.route("/api/activities")
+def api_activities():
+    """Every synced run for the Activities tab, newest first, each carrying
+    a projected effort level (see trimp above)."""
+    try:
+        df = analyze.load_index()
+    except SystemExit:
+        return jsonify({"activities": [], "athlete_max_hr": None, "rest_hr": None})
+    athlete_max = analyze.athlete_setting("max_hr") or analyze.observed_max_hr(df)
+    rest_hr = analyze.find_key(analyze.load_physiology().get("resting_hr"),
+                               {"value"}) or 60
+
+    def num(v):
+        return float(v) if pd.notna(v) else None
+
+    acts = []
+    for _, r in df.sort_values("start_time", ascending=False).iterrows():
+        dur, hr, km = num(r["duration_min"]), num(r["avg_hr"]), num(r["distance_km"])
+        load = trimp(dur, hr, athlete_max, rest_hr)
+        acts.append({
+            "date": r["start_time"].strftime("%Y-%m-%d"),
+            "name": str(r["name"]),
+            "type": str(r["type"]),
+            "indoor": r["type"] in analyze.INDOOR_TYPES,
+            "km": round(km, 2) if km else 0,
+            "duration_min": round(dur, 1) if dur else None,
+            "pace_s": num(r["avg_pace_s_per_km"]),
+            "avg_hr": round(hr) if hr else None,
+            "max_hr": round(num(r["max_hr"])) if num(r["max_hr"]) else None,
+            "pct_max": round(100 * hr / athlete_max) if hr and athlete_max else None,
+            "elev": round(num(r["elevation_gain_m"]) or 0),
+            "cadence": round(num(r["avg_cadence"])) if num(r["avg_cadence"]) else None,
+            "aerobic_te": num(r["aerobic_te"]),
+            "load": round(load) if load else None,
+        })
+
+    loads = sorted(a["load"] for a in acts if a["load"])
+    cuts = ([loads[min(len(loads) - 1, int(q * len(loads)))] for q in EFFORT_QUANTILES]
+            if loads else [])
+    for a in acts:
+        lvl = 1 + sum(a["load"] > c for c in cuts) if a["load"] else None
+        a["effort"] = lvl
+        a["effort_label"] = EFFORT_LABELS[lvl - 1] if lvl else None
+    return jsonify({"activities": acts, "athlete_max_hr": athlete_max, "rest_hr": rest_hr})
 
 
 @app.route("/api/sync", methods=["POST"])

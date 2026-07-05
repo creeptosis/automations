@@ -78,6 +78,10 @@ When Ben asks for a check-in / coach review:
   (its refresh button recalculates paces and saves the daily snapshot; the
   mileage view plots weekly pace and flags volume spikes >1.4x the 3-week
   avg and weeks where HR is >10% less efficient than the recent baseline).
+  The Activities tab lists every synced run (sortable, filterable by
+  outdoor/indoor, period, effort, name) with an effort score = Banister
+  TRIMP (duration x HR-reserve), bucketed easy->max by quantiles of Ben's
+  own run history.
 - Pace re-anchoring cadence (per Full-Spectrum article): every 2-4 weeks, or
   after any race; judge from how 90-105% workouts feel. The plan renders from
   the live anchor, so adding a race to config.json updates every workout pace.
