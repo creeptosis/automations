@@ -1,0 +1,296 @@
+#!/usr/bin/env bash
+#
+# cloudctl — set up and audit cloud CLI credentials/profiles on this machine.
+#
+# Usage:  cloudctl <command> [provider] [profile]
+#
+#   add    <cf|aws|do> <profile>   create a credential profile
+#   use    <cf|aws|do> <profile>   activate one (cf/aws: eval "$(cloudctl use cf personal)")
+#   remove <cf|aws|do> <profile>   delete a stored profile
+#   audit                          list every credential/profile on this machine
+#   check  [cf|aws|do]             live-verify stored credentials against provider APIs
+#   doctor [--fix]                 show provider CLI install status; --fix installs missing
+#
+# Missing CLIs are offered for install via winget.
+# Audit also detects: gh, gcloud, az, kubectl, ssh keys.
+#
+set -euo pipefail
+
+CF_DIR="$HOME/.cloudflare"
+
+bold()  { printf '\033[1m%s\033[0m\n' "$*"; }
+ok()    { printf '  \033[32m✔\033[0m %s\n' "$*"; }
+warn()  { printf '  \033[33m⚠\033[0m %s\n' "$*"; }
+info()  { printf '  · %s\n' "$*"; }
+die()   { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
+
+# ------------------------------------------------------------- dependencies
+
+tool_id() {  # winget package id for each CLI
+  case "$1" in
+    aws) echo Amazon.AWSCLI ;; doctl) echo DigitalOcean.Doctl ;;
+    gh) echo GitHub.cli ;; gcloud) echo Google.CloudSDK ;; az) echo Microsoft.AzureCLI ;;
+  esac
+}
+
+# Ensure a CLI is present; if missing, offer to install it via winget. Returns 1 on decline/failure.
+ensure_tool() {
+  local cmd="$1" id yn
+  command -v "$cmd" >/dev/null && return 0
+  id=$(tool_id "$cmd")
+  warn "$cmd is not installed"
+  if [ -n "$id" ] && command -v winget.exe >/dev/null; then
+    printf 'Install it now via winget (%s)? [y/N] ' "$id"
+    read -r yn
+    if [ "$yn" = y ] || [ "$yn" = Y ]; then
+      winget.exe install --id "$id" -e --accept-source-agreements --accept-package-agreements || return 1
+      if command -v "$cmd" >/dev/null; then return 0; fi
+      warn "$cmd installed but not on PATH in this shell — open a new terminal and re-run"
+      return 1
+    fi
+  fi
+  warn "install manually: winget install ${id:-$cmd}"
+  return 1
+}
+
+doctor() {
+  local fix="${1:-}" t
+  bold "── Provider CLI status"
+  for t in aws doctl gh gcloud az; do
+    if command -v "$t" >/dev/null; then
+      ok "$t  ($(command -v "$t"))"
+    elif [ "$fix" = "--fix" ]; then
+      ensure_tool "$t" || true
+    else
+      warn "$t missing  (winget install $(tool_id "$t"), or run: cloudctl doctor --fix)"
+    fi
+  done
+  if command -v wrangler >/dev/null || command -v npx >/dev/null && npx --no-install wrangler --version >/dev/null 2>&1; then
+    ok "wrangler"
+  else
+    warn "wrangler missing  (npm install -g wrangler)"
+  fi
+}
+
+# ----------------------------------------------------------------- profiles
+
+profiles_for() {
+  case "$1" in
+    cf|cloudflare) local f; for f in "$CF_DIR"/*.env; do [ -e "$f" ] && basename "$f" .env; done ;;
+    aws) if command -v aws >/dev/null; then
+           aws configure list-profiles 2>/dev/null | tr -d '\r' | sort -u
+         else  # fallback: parse ini headers, excluding sso-session blocks (not profiles)
+           { grep -h '^\[' "$HOME/.aws/credentials" "$HOME/.aws/config" 2>/dev/null || true; } \
+             | sed 's/profile //; s/[][]//g' | grep -v '^sso-session ' | sort -u
+         fi ;;
+    do|digitalocean) command -v doctl >/dev/null && doctl auth list 2>/dev/null | grep -v '^$' ;;
+  esac
+}
+
+# require_profile <provider> <command> <name-or-empty>: on empty name, show available and exit
+require_profile() {
+  [ -n "$3" ] && return 0
+  { printf 'usage: cloudctl %s %s <profile>\n\navailable %s profiles:\n' "$2" "$1" "$1"
+    local list; list=$(profiles_for "$1")
+    if [ -n "$list" ]; then echo "$list" | sed 's/^/  · /'; else echo "  (none yet — run: cloudctl add $1 <profile>)"; fi
+  } >&2
+  exit 1
+}
+
+# ---------------------------------------------------------------- cloudflare
+
+cf_add() {
+  local profile="$1" file="$CF_DIR/$1.env"
+  mkdir -p "$CF_DIR"
+  [ -f "$file" ] && die "profile '$profile' already exists ($file) — remove it first"
+
+  printf 'Auth type — [1] API token (recommended, scopable)  [2] Global API key: '
+  read -r kind
+  printf 'Account ID (optional, Enter to skip): '
+  read -r account_id
+
+  {
+    if [ "$kind" = "2" ]; then
+      printf 'Cloudflare account email: ' >&2
+      read -r email
+      printf 'Paste Global API key (input hidden): ' >&2
+      read -rs secret; echo >&2
+      [ -n "$secret" ] || die "empty key"
+      echo "export CLOUDFLARE_EMAIL='$email'"
+      echo "export CLOUDFLARE_API_KEY='$secret'"
+    else
+      printf 'Paste API token (input hidden): ' >&2
+      read -rs secret; echo >&2
+      [ -n "$secret" ] || die "empty token"
+      echo "export CLOUDFLARE_API_TOKEN='$secret'"
+    fi
+    [ -n "$account_id" ] && echo "export CLOUDFLARE_ACCOUNT_ID='$account_id'"
+  } > "$file"
+  chmod 600 "$file" 2>/dev/null || true
+
+  ok "saved $file"
+  info "activate with:  eval \"\$(cloudctl use cf $profile)\""
+}
+
+cf_use() {
+  local file="$CF_DIR/$1.env"
+  if [ ! -f "$file" ]; then
+    { echo "no such Cloudflare profile: $1 — available:"; profiles_for cf | sed 's/^/  · /'; } >&2
+    exit 1
+  fi
+  echo "unset CLOUDFLARE_EMAIL CLOUDFLARE_API_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID"
+  cat "$file"
+  echo "echo 'cloudflare profile: $1'"
+}
+
+cf_remove() {
+  local file="$CF_DIR/$1.env"
+  [ -f "$file" ] || die "no such Cloudflare profile: $1"
+  rm -i "$file"
+}
+
+cf_check_file() {
+  local file="$1" name resp
+  name="$(basename "$file" .env)"
+  # shellcheck disable=SC1090
+  ( . "$file"
+    if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+      resp=$(curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+        https://api.cloudflare.com/client/v4/user/tokens/verify)
+    else
+      resp=$(curl -sS -H "X-Auth-Email: ${CLOUDFLARE_EMAIL:-}" -H "X-Auth-Key: ${CLOUDFLARE_API_KEY:-}" \
+        https://api.cloudflare.com/client/v4/user)
+    fi
+    if echo "$resp" | grep -q '"success": *true'; then
+      ok "cf/$name valid${CLOUDFLARE_EMAIL:+ ($CLOUDFLARE_EMAIL)}"
+    else
+      warn "cf/$name INVALID: $(echo "$resp" | grep -o '"message":"[^"]*"' | head -1)"
+    fi )
+}
+
+# ----------------------------------------------------------------- aws / do
+
+aws_add() { ensure_tool aws; aws configure --profile "$1"; ok "aws profile '$1' saved in ~/.aws/"; }
+aws_use() { echo "export AWS_PROFILE='$1'"; echo "echo 'aws profile: $1'"; }
+do_add()  { ensure_tool doctl; doctl auth init --context "$1"; }
+do_use()  { ensure_tool doctl; doctl auth switch --context "$1"; }
+do_remove() { ensure_tool doctl; doctl auth remove --context "$1" && ok "removed doctl context '$1'"; }
+
+# No native `aws configure remove` exists — strip the profile's section from both ini files.
+aws_remove() {
+  local p="$1" f yn changed=0
+  grep -qsFx -e "[$p]" -e "[profile $p]" "$HOME/.aws/credentials" "$HOME/.aws/config" \
+    || die "no such aws profile: $p"
+  printf "remove aws profile '%s' from ~/.aws/credentials and ~/.aws/config? [y/N] " "$p"
+  read -r yn; { [ "$yn" = y ] || [ "$yn" = Y ]; } || die "aborted"
+  for f in "$HOME/.aws/credentials" "$HOME/.aws/config"; do
+    [ -f "$f" ] || continue
+    awk -v sec="$p" '/^\[/ { skip = ($0 == "[" sec "]" || $0 == "[profile " sec "]") } !skip' \
+      "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+    changed=1
+  done
+  [ "$changed" = 1 ] && ok "removed aws profile '$p'"
+}
+
+# -------------------------------------------------------------------- audit
+
+audit() {
+  bold "── Cloudflare ($CF_DIR)"
+  local found=0 f
+  for f in "$CF_DIR"/*.env; do
+    [ -e "$f" ] || continue; found=1
+    info "$(basename "$f" .env)  ($(grep -o 'CLOUDFLARE_API_TOKEN\|CLOUDFLARE_API_KEY' "$f" | head -1 | sed 's/CLOUDFLARE_API_TOKEN/api-token/;s/CLOUDFLARE_API_KEY/global-key/'))"
+  done
+  for f in "$CF_DIR"/*.key "$CF_DIR"/*.token; do
+    [ -e "$f" ] || continue; found=1
+    info "$(basename "$f")  (legacy flat file)"
+  done
+  [ "$found" = 0 ] && info "none"
+  [ -n "${CLOUDFLARE_API_TOKEN:-}${CLOUDFLARE_API_KEY:-}" ] && ok "active in this shell${CLOUDFLARE_EMAIL:+: $CLOUDFLARE_EMAIL}"
+  for d in "$HOME/.wrangler" "$APPDATA/xdg.config/.wrangler" "$HOME/.config/.wrangler"; do
+    [ -d "$d" ] && info "wrangler OAuth session dir: $d"
+  done
+
+  bold "── AWS (~/.aws)"
+  if [ -f "$HOME/.aws/credentials" ] || [ -f "$HOME/.aws/config" ]; then
+    profiles_for aws | while read -r p; do info "$p"; done
+    [ -n "${AWS_PROFILE:-}" ] && ok "active in this shell: $AWS_PROFILE"
+    [ -n "${AWS_ACCESS_KEY_ID:-}" ] && warn "AWS_ACCESS_KEY_ID set directly in env (overrides profiles)"
+  else
+    info "none"
+  fi
+
+  bold "── DigitalOcean (doctl)"
+  if command -v doctl >/dev/null; then
+    doctl auth list 2>/dev/null | sed 's/^/  · /' || info "doctl installed, no contexts"
+  else
+    local dcfg="$APPDATA/doctl/config.yaml"
+    [ -f "$dcfg" ] && info "config exists: $dcfg (doctl not on PATH)" || info "doctl not installed"
+  fi
+  [ -n "${DIGITALOCEAN_ACCESS_TOKEN:-}" ] && ok "token active in this shell"
+
+  bold "── Other credentials detected"
+  command -v gcloud >/dev/null && gcloud config configurations list --format='value(name,is_active,properties.core.account)' 2>/dev/null | while read -r l; do info "gcloud: $l"; done
+  command -v az >/dev/null && [ -f "$HOME/.azure/azureProfile.json" ] && info "azure: ~/.azure profile present"
+  command -v gh >/dev/null && gh auth status 2>&1 | grep -E 'Logged in|account' | sed 's/^ */  · gh: /' || true
+  [ -f "$HOME/.kube/config" ] && info "kubectl: ~/.kube/config ($(grep -c '^- name:' "$HOME/.kube/config" 2>/dev/null || echo '?') contexts)"
+  ls "$HOME/.ssh/"*.pub >/dev/null 2>&1 && info "ssh keys: $(ls "$HOME/.ssh/"*.pub | xargs -n1 basename | tr '\n' ' ')"
+
+  bold "── Secret-like env vars in this shell (names only)"
+  env | grep -iE '^(.*_)?(TOKEN|KEY|SECRET|PASSWORD|CREDENTIAL)[S]?=' | cut -d= -f1 | sed 's/^/  · /' || info "none"
+}
+
+# -------------------------------------------------------------------- check
+
+check() {
+  local target="${1:-all}" f p
+  if [ "$target" = cf ] || [ "$target" = all ]; then
+    bold "── Cloudflare"
+    for f in "$CF_DIR"/*.env; do [ -e "$f" ] && cf_check_file "$f"; done
+  fi
+  if [ "$target" = aws ] || [ "$target" = all ]; then
+    bold "── AWS"
+    if command -v aws >/dev/null; then
+      profiles_for aws | while read -r p; do
+        if out=$(aws sts get-caller-identity --profile "$p" --query Arn --output text 2>&1); then
+          ok "aws/$p valid ($out)"
+        elif echo "$out" | grep -qi 'sso\|token.*expired'; then
+          warn "aws/$p needs SSO login (run: aws sso login --profile $p)"
+        else
+          warn "aws/$p INVALID"
+        fi
+      done
+    fi
+  fi
+  if [ "$target" = do ] || [ "$target" = all ]; then
+    bold "── DigitalOcean"
+    if command -v doctl >/dev/null; then
+      doctl auth list 2>/dev/null | grep -v '^$' | sed 's/ *(current)//' | while read -r p; do
+        if out=$(doctl account get --context "$p" --format Email --no-header 2>&1); then
+          ok "do/$p valid ($out)"
+        else
+          warn "do/$p INVALID"
+        fi
+      done
+    fi
+  fi
+}
+
+# --------------------------------------------------------------------- main
+
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  add)    prov="${1:?usage: cloudctl add <cf|aws|do> <profile>}"
+          name="${2:?profile name required — pick a new kebab-case name, e.g. personal}"
+          case "$prov" in cf|cloudflare) cf_add "$name";; aws) aws_add "$name";; do|digitalocean) do_add "$name";; *) die "unknown provider: $prov";; esac ;;
+  use)    prov="${1:?usage: cloudctl use <cf|aws|do> <profile>}"; name="${2:-}"
+          require_profile "$prov" use "$name"
+          case "$prov" in cf|cloudflare) cf_use "$name";; aws) aws_use "$name";; do|digitalocean) do_use "$name";; *) die "unknown provider: $prov";; esac ;;
+  remove) prov="${1:?usage: cloudctl remove <cf|aws|do> <profile>}"; name="${2:-}"
+          require_profile "$prov" remove "$name"
+          case "$prov" in cf|cloudflare) cf_remove "$name";; aws) aws_remove "$name";; do|digitalocean) do_remove "$name";; *) die "unknown provider: $prov";; esac ;;
+  audit|list|ls) audit ;;
+  check)  check "${1:-all}" ;;
+  doctor) doctor "${1:-}" ;;
+  *)      sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac
