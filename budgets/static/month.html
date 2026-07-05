@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0d13">
+<title>Budget · month</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='32' y2='32'%3E%3Cstop stop-color='%233ecf8e'/%3E%3Cstop offset='1' stop-color='%234f7cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Crect x='7' y='17' width='4.5' height='8' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='13.75' y='12' width='4.5' height='13' rx='2' fill='%23fff' opacity='.9'/%3E%3Crect x='20.5' y='7' width='4.5' height='18' rx='2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/app.css?v=2">
+</head>
+<body data-page="month" class="wide">
+<header id="top"></header>
+<main class="wrap">
+
+  <div class="pagehead">
+    <h1>month</h1>
+    <p>what actually happened — check-ins, statements, actual vs plan · optional, never required</p>
+  </div>
+
+  <div class="strip">
+    <div class="cell">
+      <div class="cell-label">last check-in</div>
+      <div class="cell-value" id="c-last">—</div>
+      <div class="cell-sub" id="c-lastsub"></div>
+    </div>
+    <div class="cell"><div class="cell-label">months closed</div><div class="cell-value" id="c-months">—</div></div>
+  </div>
+
+  <h2 style="margin-top:18px">drift</h2>
+  <div class="card drift" id="drift">
+    <div class="skelwrap"><div class="skel" style="width:48%"></div><div class="skel" style="width:70%"></div></div>
+  </div>
+
+  <h2>check-ins · total bank balance, once a month</h2>
+  <div class="card">
+    <table id="checkins"></table>
+    <form id="f-checkin" class="cardform">
+      <input type="date" name="on_date" required>
+      <input type="number" name="balance" step="0.01" placeholder="total balance RM" required style="width:150px">
+      <input name="note" placeholder="note (optional)" class="grow">
+      <button>log</button>
+    </form>
+  </div>
+
+  <h2>actual vs plan <select id="month" onchange="load(this.value)"></select></h2>
+  <div class="card">
+    <div class="skelwrap"><div class="skel" style="width:52%"></div><div class="skel" style="width:74%"></div></div>
+    <table id="actuals"></table>
+  </div>
+
+  <h2>unmatched spend · teach a rule, it applies forever</h2>
+  <div class="card"><table id="unmatched"></table></div>
+
+  <h2>upload a statement</h2>
+  <div class="card">
+    <form id="f-upload" class="cardform">
+      <label class="btn ghost" for="file">choose file</label>
+      <input type="file" id="file" accept=".csv,.txt" hidden>
+      <span id="fname" class="dim">no file selected</span>
+      <input id="source" placeholder="source (maybank, tng…)" list="sources" style="width:180px">
+      <datalist id="sources"></datalist>
+      <button>upload</button>
+    </form>
+    <div class="resultline" id="result"></div>
+    <div class="note">CSV needs date + amount (or debit/credit) columns; duplicates are skipped automatically.
+      PDF statements (TNB e-bill, TnG e-statement…): drop a sample in <code>budgets/samples/</code> and the exact parser gets built next.</div>
+  </div>
+
+  <h2>months · plan as it stood</h2>
+  <div class="card">
+    <table id="months"></table>
+    <div class="note">months close automatically on first use in a new month · <a class="linky" id="snapnow">snapshot this month now</a></div>
+  </div>
+
+  <h2>transactions <a class="linky" id="txntoggle">show</a></h2>
+  <div class="card" id="txncard" hidden><table id="txns"></table></div>
+
+  <h2>rules</h2>
+  <div class="card">
+    <table id="rules"></table>
+    <form id="f-rule" class="cardform">
+      <input id="r-keyword" placeholder="keyword (matches description)" required style="width:230px">
+      <select id="r-cat"></select>
+      <button>add rule</button>
+    </form>
+  </div>
+
+  <h2>statements</h2>
+  <div class="card"><table id="statements"></table></div>
+
+</main>
+<script src="/static/app.js?v=2"></script>
+<script>
+let S = null;   // /api/summary — check-ins, drift, snapshots
+let R = null;   // /api/reconcile — statements, actuals, rules
+
+const catOpts = sel =>
+  '<option value="">—</option>' +
+  R.categories.map(c => `<option value="${c.id}"${c.id === sel ? " selected" : ""}>${esc(c.name)}</option>`).join("");
+
+// ---- check-ins, drift, closed months (from /api/summary)
+
+function stripFill() {
+  if (!S.checkins.length) {
+    $("c-last").textContent = "—";
+    $("c-lastsub").textContent = "one balance check-in a month keeps the surplus honest";
+  } else {
+    const c = S.checkins[0];
+    $("c-last").textContent = fmt(c.balance);
+    $("c-lastsub").textContent = c.on_date;
+  }
+  $("c-months").textContent = S.snapshots.length;
+}
+
+function drift() {
+  const el = $("drift");
+  if (!S.drift) {
+    el.innerHTML = '<div class="empty">log two check-ins to see drift</div>';
+    return;
+  }
+  const d = S.drift;
+  const over = d.gap_monthly < 0;
+  const verdict = Math.abs(d.gap_monthly) < 100
+    ? `<span class="pos">on plan (gap ${sgn(d.gap_monthly)}/mo)</span>`
+    : over
+      ? `<span class="neg">~${fmt(-d.gap_monthly)}/mo unmapped spending</span>`
+      : `<span class="pos">~${fmt(d.gap_monthly)}/mo better than plan</span>`;
+  el.innerHTML =
+    `<div class="l1">${d.from} → ${d.to} <span class="dim">(${d.span_months} mo)</span></div>` +
+    `<div class="l2">bank moved ${sgn(d.actual_delta)} · plan predicted ${sgn(d.predicted_delta)}` +
+    ` <span class="dim">(surplus × span − ${fmt(d.contributions)} goal contributions)</span></div>` +
+    `<div class="l3">${verdict}</div>`;
+}
+
+function checkins() {
+  const rows = [];
+  const cs = S.checkins;
+  for (let i = 0; i < cs.length; i++) {
+    const delta = i + 1 < cs.length ? cs[i].balance - cs[i + 1].balance : null;
+    rows.push(`<tr><td class="datecell">${cs[i].on_date}</td><td class="n">${fmt(cs[i].balance)}</td>` +
+      `<td class="n ${delta == null ? "" : delta >= 0 ? "pos" : "neg"}">${delta == null ? "" : sgn(delta)}</td>` +
+      `<td class="mut">${esc(cs[i].note)}</td>` +
+      `<td class="act"><a class="iconbtn" onclick="del('checkin',${cs[i].id})" title="delete">${ICON.x}</a></td></tr>`);
+  }
+  $("checkins").innerHTML =
+    rows.join("") || `<tr><td class="empty">none yet — log your first balance below</td></tr>`;
+  const f = $("f-checkin");
+  if (!f.on_date.value) f.on_date.value = S.as_of;
+}
+
+function months() {
+  const rows = [];
+  const best = Math.max(...S.snapshots.map(m => m.savings_pct ?? -Infinity));
+  if (S.snapshots.length)
+    rows.push(`<tr><th>month</th><th class="n">net</th><th class="n">mapped</th><th class="n">surplus</th><th class="n">saved</th><th></th></tr>`);
+  for (const m of S.snapshots) {
+    const isBest = m.savings_pct != null && m.savings_pct === best && S.snapshots.length > 1;
+    const w = Math.max(0, Math.min(100, m.savings_pct || 0));
+    rows.push(`<tr class="rowlink" onclick="toggleMonth('${m.month}', this)">` +
+      `<td class="datecell"><span class="chev">${ICON.chev}</span>${m.month}</td>` +
+      `<td class="n">${fmt(m.net)}</td><td class="n mut">${fmt(m.mapped)}</td>` +
+      `<td class="n">${fmt(m.surplus)}</td><td class="n${isBest ? " pos" : ""}">${pc(m.savings_pct)}</td>` +
+      `<td class="n"><span class="minitrack"><span class="fill ${isBest ? "best" : "acc"}" style="width:${w}%"></span></span></td></tr>`);
+    for (const c of m.categories)
+      rows.push(`<tr class="item m${m.month}" hidden><td class="subpad mut">${esc(c.name)}</td>` +
+        `<td></td><td></td><td class="n mut">${fmt(c.monthly)}</td><td></td><td></td></tr>`);
+  }
+  $("months").innerHTML =
+    rows.join("") || `<tr><td class="empty">no closed months yet — the first snapshot lands automatically next month</td></tr>`;
+}
+
+function toggleMonth(m, row) {
+  row.classList.toggle("open");
+  document.querySelectorAll(".m" + CSS.escape(m)).forEach(r => r.hidden = !r.hidden);
+}
+
+// ---- statements, actual vs plan, rules (from /api/reconcile)
+
+function renderReconcile() {
+  $("month").hidden = !R.months.length;
+  $("month").innerHTML =
+    R.months.map(m => `<option${m === R.month ? " selected" : ""}>${m}</option>`).join("");
+  $("sources").innerHTML =
+    [...new Set(R.statements.map(s => s.source))].map(s => `<option>${esc(s)}</option>`).join("");
+
+  const act = (R.actuals || []).map(a => {
+    const d = a.plan != null ? a.actual - a.plan : null;
+    const dcell = d == null ? '<span class="dim">no plan</span>'
+      : `<span class="${d > 0 ? "neg" : "pos"}">${d >= 0 ? "+" : "−"}${fmt(Math.abs(d))}</span>`;
+    return `<tr><td>${esc(a.category)}</td><td class="n">${fmt(a.actual)}</td>` +
+           `<td class="n mut">${a.plan != null ? fmt(a.plan) : "–"}</td><td class="n">${dcell}</td></tr>`;
+  });
+  const un = R.unmatched || [];
+  if (un.length) {
+    const tot = un.reduce((t, u) => t + u.total, 0);
+    act.unshift(`<tr><td><span class="pill warn">unmatched</span></td>` +
+                `<td class="n" style="color:var(--amber)">${fmt(tot)}</td><td class="n mut">–</td><td></td></tr>`);
+  }
+  if (R.month)
+    act.push(`<tr class="total"><td class="mut">month total</td><td class="n">${fmt(R.outflow)} out</td>` +
+             `<td class="n mut" colspan="2">${fmt(R.inflow)} in</td></tr>`);
+  $("actuals").innerHTML =
+    (R.actuals || []).length || un.length
+      ? `<tr><th>category</th><th class="n">actual</th><th class="n">plan</th><th class="n">Δ</th></tr>` + act.join("")
+      : `<tr><td class="empty">no statement data for this month yet — upload one below</td></tr>`;
+
+  $("unmatched").innerHTML = un.length
+    ? un.map((u, i) =>
+        `<tr><td>${esc(u.description)} <span class="dim">×${u.count} · ${fmt(u.total)}</span></td>` +
+        `<td class="n"><span class="teach">` +
+        `<input id="uk${i}" value="${esc(u.description.split(" ")[0])}" style="width:150px">` +
+        `<select id="uc${i}">${catOpts(null)}</select>` +
+        `<button class="sm" onclick="teach(${i})">rule</button></span></td></tr>`).join("")
+    : `<tr><td class="empty">nothing unmatched — every ringgit has a category</td></tr>`;
+
+  $("txns").innerHTML = (R.txns || []).length
+    ? R.txns.map(t =>
+        `<tr><td class="datecell mut">${t.on_date}</td><td>${esc(t.description)}</td>` +
+        `<td class="n ${t.amount < 0 ? "" : "pos"}">${fmt(t.amount)}</td>` +
+        `<td class="n"><select class="txncat" onchange="setCat(${t.id}, this.value)">${catOpts(t.category_id)}</select></td>` +
+        `<td class="act"><a class="iconbtn" onclick="del('txn',${t.id})" title="delete">${ICON.x}</a></td></tr>`).join("")
+    : `<tr><td class="empty">none this month</td></tr>`;
+
+  $("rules").innerHTML = R.rules.length
+    ? R.rules.map(r =>
+        `<tr><td>${esc(r.keyword)}</td><td class="mut">→ ${esc(r.category)}</td>` +
+        `<td class="act"><a class="iconbtn" onclick="del('rule',${r.id})" title="delete">${ICON.x}</a></td></tr>`).join("")
+    : `<tr><td class="empty">no rules yet — teach them from unmatched spend above</td></tr>`;
+
+  $("r-cat").innerHTML = catOpts(null);
+
+  $("statements").innerHTML = R.statements.length
+    ? R.statements.map(s =>
+        `<tr><td>${esc(s.source)}</td><td class="mut">${esc(s.filename)}</td>` +
+        `<td class="datecell mut">${s.uploaded_on}</td><td class="n mut">${s.txn_count} txns</td>` +
+        `<td class="act"><a class="iconbtn" title="flip +/− if spending imported as positive" onclick="flip(${s.id})">±</a>` +
+        `<a class="iconbtn" onclick="del('statement',${s.id})" title="delete">${ICON.x}</a></td></tr>`).join("")
+    : `<tr><td class="empty">nothing uploaded yet</td></tr>`;
+}
+
+async function teach(i) {
+  const kw = $("uk" + i).value.trim();
+  const cat = $("uc" + i).value;
+  if (!kw || !cat) { toast("keyword and category needed"); return; }
+  try {
+    await api("POST", "/api/rule", {keyword: kw, category_id: cat});
+    await api("POST", "/api/rules/apply");
+    await load(R.month);
+  } catch {}
+}
+
+async function setCat(id, v) {
+  try {
+    await api("PUT", "/api/txn/" + id, {category_id: v});
+    await load(R.month);
+  } catch {}
+}
+
+async function del(entity, id) {
+  if (!confirm("delete?")) return;
+  try {
+    await api("DELETE", `/api/${entity}/${id}`);
+    await load(R && R.month);
+  } catch {}
+}
+
+async function flip(id) {
+  try {
+    await api("POST", `/api/statement/${id}/flip`);
+    await load(R.month);
+  } catch {}
+}
+
+$("f-rule").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const kw = $("r-keyword").value.trim();
+  const cat = $("r-cat").value;
+  if (!kw || !cat) return;
+  try {
+    await api("POST", "/api/rule", {keyword: kw, category_id: cat});
+    await api("POST", "/api/rules/apply");
+    ev.target.reset();
+    await load(R.month);
+  } catch {}
+});
+
+$("file").addEventListener("change", () => {
+  $("fname").textContent = $("file").files[0] ? $("file").files[0].name : "no file selected";
+});
+
+$("f-upload").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const file = $("file").files[0];
+  if (!file) { toast("choose a CSV first"); return; }
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("source", $("source").value);
+  const r = await fetch("/api/statement/upload", {method: "POST", body: fd});
+  if (r.status === 401) { location.href = "/login"; return; }
+  const j = await r.json().catch(() => ({}));
+  const el = $("result");
+  el.classList.toggle("neg", !r.ok);
+  el.textContent = r.ok
+    ? `${j.imported} imported · ${j.duplicates} duplicates skipped · ${j.rows_skipped} unparseable` +
+      ` · ${j.auto_categorised} auto-categorised · ${j.unmatched_spend} spend txns need a category`
+    : "error: " + (j.error || "upload failed");
+  ev.target.reset();
+  $("fname").textContent = "no file selected";
+  if (r.ok) await load();
+});
+
+$("txntoggle").addEventListener("click", ev => {
+  const c = $("txncard");
+  c.hidden = !c.hidden;
+  ev.target.textContent = c.hidden ? "show" : "hide";
+});
+
+$("f-checkin").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const f = ev.target, data = {};
+  for (const el of f.elements) if (el.name) data[el.name] = el.value;
+  try {
+    await api("POST", "/api/checkin", data);
+    f.reset();
+    await load(R && R.month);
+  } catch {}
+});
+
+$("snapnow").addEventListener("click", async () => {
+  try {
+    await api("POST", "/api/snapshot/now");
+    await load(R && R.month);
+  } catch {}
+});
+
+async function load(month) {
+  [S, R] = await Promise.all([
+    getJSON("/api/summary"),
+    getJSON("/api/reconcile" + (month ? "?month=" + month : "")),
+  ]);
+  stripFill(); drift(); checkins(); months();
+  renderReconcile();
+  unskel();
+}
+load(new URLSearchParams(location.search).get("month")).catch(e => { skelFail(); console.error(e); });
+</script>
+</body>
+</html>

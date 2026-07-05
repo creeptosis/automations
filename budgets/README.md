@@ -12,30 +12,37 @@ Every ringgit of net income mapped -> surplus -> wealth goals. Flask + SQLite, p
 Commands live in `..\bin` and are on PATH via forwarders in `C:\Users\etern\bin`.
 Manual fallback: `python scripts/gui.py`.
 
-Pages:
+Four tabs, one per question (restructured 2026-07-05; the old /manage, /subs, /life,
+/history and /reconcile URLs redirect to their new homes):
 
-- `/` — decision screen: gross -> deductions -> net -> categories (RM + % of net) -> surplus,
+- `/` (home) — decide: gross -> deductions -> net -> categories (RM + % of net) -> surplus,
   goal pacing ("surplus gives RM X/mo -> RM Y by deadline"), and upcoming non-monthly
-  rolls in the next 90 days.
-- `/subs` — every expense with a roll date: exact cost, cadence, next renewal (computed
-  forward from the anchor date, so past dates never go stale), monthly equivalent.
-- `/life` — life-admin trackers (haircut, car service, battery, road tax docs, passport):
-  last done, cost then, next due (last entry + interval). Click a row to see history and
-  log a new entry. Dues within 90 days (and overdue) join the decision screen's UPCOMING
-  list marked `~` — expected money, not part of the budget map (no double-counting).
-- `/history` — the honesty loop: log your total bank balance once a month; drift shows
-  how the bank actually moved vs what the plan predicted (net of goal contributions),
-  e.g. "bank +RM 2,400, plan said +RM 3,100 -> ~RM 700/mo unmapped". Months auto-close
-  into snapshots (net, mapped, surplus, savings rate, per-category) the first time the
-  app runs in a new month, building the multi-year record.
-- `/reconcile` — optional honesty upgrade for the lumps: upload a bank/e-wallet CSV,
-  keyword rules categorise every spend (teach once, applies forever), and each month
-  shows actual vs plan per category ("Food actually ran RM 1,712 vs the RM 1,500 lump").
-  Duplicate rows across overlapping statements are skipped. Never required - skip it
-  and the app works exactly as before. PDF statements: drop one sample in `samples/`
-  (gitignored) and the exact parser gets built against it.
-- `/manage` — edit income, deductions, expenses, goals, contributions, categories,
-  and tracker definitions.
+  rolls in the next 90 days. Goals marked "resets yearly" (EPF self-contribution:
+  the RM100k cap is per calendar year) roll their deadline to Dec 31 every year and
+  count only that year's contributions - the goal never goes stale.
+- `/plan` — enter/edit everything, top to bottom in setup order.
+  ① income: gross with deductions indented beneath (per-income net line), or skip
+  typing entirely: upload a payslip PDF and the reader pulls gross, EPF/SOCSO/EIS/PCB,
+  period and employer off it, refuses to trust itself unless the slip's own arithmetic
+  reconciles, then previews a one-line diff vs the current base before replacing it.
+  ② spending: ONE list for everything money goes to - rent, Netflix, road tax, car
+  service, the daily ≈ lump. Every row is name + tag + RM + one repeat rule:
+  monthly/quarterly/half-yearly/yearly (counted in the map, optional renews-on date)
+  or every-N-months / fixed-expiry / log-only (radar only - expected money the lumps
+  already cover, so no double-counting). The tag is typed inline (datalist of existing
+  categories + groups); new category names are created on the fly - no categories card.
+  ③ goals: click a goal to see and log its contributions inline.
+- `/radar` — everything dated on one timeline, soonest first: expense renewals and
+  tracker dues/expiries together. Tracker rows expand in place to log a renewal
+  (expiry items offer "new expiry" in the same form - road tax renewals are one row);
+  logging a past date backfills "last changed". Below it, the log-only list answers
+  "when did I last ..." (haircut, running shoes). Definitions are edited in /plan.
+- `/month` — what actually happened: bank check-ins (once a month) with the drift
+  verdict (bank moved vs plan predicted, net of goal contributions), statement CSV
+  upload with keyword rules (teach once, applies forever), actual vs plan per
+  category, and auto-closed month snapshots. Never required - skip it and the app
+  works exactly as before. PDF statements: drop one sample in `samples/` (gitignored)
+  and the exact parser gets built against it.
 
 Money model (locked 2026-07-05): exact recurring items (subscriptions, rent, insurance,
 with real renewal dates) + lump-sum monthly estimates (food, personal). No per-transaction
@@ -63,6 +70,9 @@ Architecture on the avery droplet (167.99.65.102):
 **The hosted DB is the source of truth.** The local copy under `data/` is a dev
 sandbox - it diverges from production and deploys never touch either DB.
 Deploy code changes with `budget deploy` (ships scripts/static, restarts the service).
+Deploys ship code only - a new python dependency needs a one-time
+`ssh avery "/opt/budgets/venv/bin/pip install -r /opt/budgets/requirements.txt"`
+(pdfplumber added 2026-07-05 for the payslip reader).
 
 ## Open items
 
@@ -70,4 +80,5 @@ Deploy code changes with `budget deploy` (ships scripts/static, restarts the ser
   (TNG app export, bank PDF) - each gets an exact tested parser.
 - Optional hardening: Cloudflare "Full (strict)" + free Origin CA cert for `*.tubby.asia`.
 - The droplet has a pending kernel upgrade - reboot it sometime (brief avery downtime).
-- The hosted DB still needs real data: income, deductions, expenses, tracker history.
+- The hosted DB still needs real data: income + deductions now come from a payslip
+  upload on /plan; expenses and tracker history are still hand-entered.

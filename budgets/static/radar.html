@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0d13">
+<title>Budget · radar</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='32' y2='32'%3E%3Cstop stop-color='%233ecf8e'/%3E%3Cstop offset='1' stop-color='%234f7cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Crect x='7' y='17' width='4.5' height='8' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='13.75' y='12' width='4.5' height='13' rx='2' fill='%23fff' opacity='.9'/%3E%3Crect x='20.5' y='7' width='4.5' height='18' rx='2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/app.css?v=2">
+</head>
+<body data-page="radar">
+<header id="top"></header>
+<main class="wrap">
+
+  <div class="pagehead">
+    <h1>radar</h1>
+    <p>everything dated, soonest first — click a row to log or renew · definitions live in <a href="/plan">plan</a></p>
+  </div>
+
+  <div class="strip">
+    <div class="cell"><div class="cell-label">dated</div><div class="cell-value" id="c-count">—</div></div>
+    <div class="cell"><div class="cell-label">overdue</div><div class="cell-value" id="c-od">—</div></div>
+    <div class="cell"><div class="cell-label">next up</div><div class="cell-value small" id="c-next">—</div></div>
+  </div>
+
+  <div class="card">
+    <div class="skelwrap"><div class="skel" style="width:55%"></div><div class="skel" style="width:80%"></div><div class="skel" style="width:66%"></div></div>
+    <table id="tbl"></table>
+  </div>
+
+  <h2>log only · when did I last …</h2>
+  <div class="card">
+    <table id="logs"></table>
+  </div>
+
+</main>
+<script src="/static/app.js?v=2"></script>
+<script>
+let TODAY, TRK = {};
+
+function ago(iso) {
+  const d = Math.round((new Date(TODAY) - new Date(iso)) / 86400000);
+  if (d === 0) return "today";
+  if (d < 60) return d + "d ago";
+  return (d / 30.44).toFixed(1) + " mo ago";
+}
+
+function duePill(days, exp) {
+  if (days < 0) return `<span class="pill bad">${exp ? "expired" : "overdue"} ${-days}d</span>`;
+  return `<span class="pill${days <= 14 ? " warn" : ""}">${exp ? "expires" : "due"} in ${days}d</span>`;
+}
+
+// history rows + inline log form under a tracker row (shared by both tables)
+function trackerSubRows(t) {
+  const rows = [];
+  for (const e of t.entries)
+    rows.push(`<tr class="item t${t.id}" hidden><td class="subpad datecell mut">${e.on_date}</td>` +
+      `<td class="n mut">${e.cost != null ? fmt(e.cost) : ""}</td>` +
+      `<td class="mut" colspan="2">${esc(e.note)}</td>` +
+      `<td class="act"><a class="iconbtn" onclick="delEntry(event,${e.id})" title="delete">${ICON.x}</a></td></tr>`);
+  rows.push(`<tr class="item logrow t${t.id}" hidden><td colspan="5" class="subpad">` +
+    `<form class="cardform" style="padding:2px 0 8px;border:none" onsubmit="return logEntry(event,${t.id})">` +
+    `<input type="date" name="on_date" value="${TODAY}" required>` +
+    `<input type="number" name="cost" step="0.01" min="0" placeholder="RM (optional)">` +
+    `<input name="note" placeholder="note (optional)" class="grow">` +
+    (t.expires_on ? `<label class="chk">new expiry <input type="date" name="new_expiry" title="updates the expiry date after this renewal"></label>` : "") +
+    `<button class="sm">log</button></form></td></tr>`);
+  return rows;
+}
+
+function render(s) {
+  TODAY = s.as_of;
+  TRK = {};
+  for (const t of s.trackers) TRK[t.id] = t;
+
+  // dated list: expense renewals + tracker dues/expiries, one timeline
+  const dated = [];
+  for (const c of s.categories)
+    for (const e of c.items)
+      if (e.next_roll)
+        dated.push({kind: "expense", when: e.next_roll, days: e.days_to_roll,
+                    name: e.name, tag: c.name, est: e.is_estimate,
+                    rm: e.amount, cad: e.cadence});
+  for (const t of s.trackers)
+    if (t.next_due)
+      dated.push({kind: "tracker", when: t.next_due, days: t.days_to_due,
+                  name: t.name, tag: t.grp || "", rm: t.expected_cost,
+                  exp: !!t.expires_on, t});
+  dated.sort((a, b) => a.when.localeCompare(b.when));
+
+  const overdue = dated.filter(d => d.days < 0);
+  const ahead = dated.filter(d => d.days >= 0);
+  $("c-count").textContent = dated.length || "—";
+  const oc = $("c-od");
+  oc.textContent = overdue.length;
+  oc.classList.toggle("isbad", overdue.length > 0);
+  $("c-next").innerHTML = ahead.length
+    ? `${esc((ahead[0].tag ? ahead[0].tag + " · " : "") + ahead[0].name)} <span class="mut">· ${ahead[0].days}d</span>` : "—";
+
+  const rows = [];
+  if (dated.length)
+    rows.push(`<tr><th>when</th><th>item</th><th>tag</th><th class="n">RM</th><th></th></tr>`);
+  for (const d of dated) {
+    if (d.kind === "tracker") {
+      rows.push(`<tr class="rowlink" onclick="toggle(${d.t.id}, this)">` +
+        `<td class="datecell"><span class="chev">${ICON.chev}</span>${d.when} ${duePill(d.days, d.exp)}</td>` +
+        `<td>${esc(d.name)}</td><td class="mut">${esc(d.tag)}</td>` +
+        `<td class="n">${d.rm != null ? "~ " + fmt(d.rm) : "–"}</td>` +
+        `<td class="mut" style="text-align:right">${d.t.last ? "last " + ago(d.t.last.on_date) : ""}</td></tr>`);
+      rows.push(...trackerSubRows(d.t));
+    } else {
+      rows.push(`<tr><td class="datecell">${d.when} ${duePill(d.days, false)}</td>` +
+        `<td>${esc(d.name)}${d.est ? ' <span class="pill" title="estimate">≈</span>' : ""}</td>` +
+        `<td class="mut">${esc(d.tag)}</td>` +
+        `<td class="n">${fmt(d.rm)} <span class="pill">${d.cad}</span></td><td></td></tr>`);
+    }
+  }
+  $("tbl").innerHTML = rows.join("") ||
+    `<tr><td class="empty">nothing dated yet — give items a renew date, expiry or every-N in <a href="/plan">plan</a></td></tr>`;
+
+  // log-only + not-yet-logged interval trackers: the "when did I last" list
+  const logs = [];
+  const loggers = s.trackers.filter(t => !t.next_due);
+  if (loggers.length)
+    logs.push(`<tr><th>item</th><th>last done</th><th class="n">cost then</th><th></th><th></th></tr>`);
+  for (const t of loggers) {
+    logs.push(`<tr class="rowlink" onclick="toggle(${t.id}, this)">` +
+      `<td><span class="chev">${ICON.chev}</span>${esc((t.grp ? t.grp + " · " : "") + t.name)}</td>` +
+      `<td class="datecell">${t.last ? `${t.last.on_date} <span class="dim">${ago(t.last.on_date)}</span>` : '<span class="dim">never logged</span>'}</td>` +
+      `<td class="n mut">${t.last && t.last.cost != null ? fmt(t.last.cost) : ""}</td>` +
+      `<td class="mut">${t.interval_months ? "every " + t.interval_months + " mo — log once to start the clock" : ""}</td>` +
+      `<td></td></tr>`);
+    logs.push(...trackerSubRows(t));
+  }
+  $("logs").innerHTML = logs.join("") ||
+    `<tr><td class="empty">none — “log only” items from <a href="/plan">plan</a> show up here</td></tr>`;
+}
+
+function toggle(id, row) {
+  row.classList.toggle("open");
+  document.querySelectorAll(".t" + id).forEach(r => r.hidden = !r.hidden);
+}
+
+async function logEntry(ev, id) {
+  ev.preventDefault();
+  const f = ev.target, data = {tracker_id: id};
+  for (const el of f.elements)
+    if (el.name && el.name !== "new_expiry") data[el.name] = el.value;
+  try {
+    await api("POST", "/api/entry", data);
+    const nx = f.elements.new_expiry && f.elements.new_expiry.value;
+    if (nx) await api("PUT", "/api/tracker/" + id, {expires_on: nx});
+    await load();
+  } catch {}
+  return false;
+}
+
+async function delEntry(ev, id) {
+  ev.stopPropagation();
+  if (!confirm("delete this entry?")) return;
+  try {
+    await api("DELETE", "/api/entry/" + id);
+    await load();
+  } catch {}
+}
+
+async function load() {
+  const s = await getJSON("/api/summary");
+  render(s);
+  unskel();
+}
+load().catch(e => { skelFail(); console.error(e); });
+</script>
+</body>
+</html>

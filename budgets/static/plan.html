@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0d13">
+<title>Budget · plan</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='32' y2='32'%3E%3Cstop stop-color='%233ecf8e'/%3E%3Cstop offset='1' stop-color='%234f7cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Crect x='7' y='17' width='4.5' height='8' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='13.75' y='12' width='4.5' height='13' rx='2' fill='%23fff' opacity='.9'/%3E%3Crect x='20.5' y='7' width='4.5' height='18' rx='2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/app.css?v=2">
+</head>
+<body data-page="plan" class="wide">
+<header id="top"></header>
+<main class="wrap">
+
+  <div class="pagehead"><h1>plan</h1><p>top to bottom = setup order</p></div>
+
+  <h2 style="margin-top:0">① income · gross → net</h2>
+  <div class="card">
+    <div class="skelwrap"><div class="skel" style="width:45%"></div><div class="skel" style="width:52%"></div></div>
+    <table id="t-income"></table>
+    <form id="f-income" class="cardform">
+      <input name="name" placeholder="income name" required>
+      <input name="gross_monthly" type="number" step="0.01" min="0" placeholder="gross RM/mo" required>
+      <button>add income</button><a class="cancel">cancel</a>
+    </form>
+    <form id="f-deduction" class="cardform">
+      <select name="income_id" required></select>
+      <input name="name" placeholder="deduction (EPF 11%, SOCSO, PCB…)" required style="width:220px">
+      <input name="amount_monthly" type="number" step="0.01" min="0" placeholder="RM/mo" required>
+      <button>add deduction</button><a class="cancel">cancel</a>
+    </form>
+    <div class="cardform">
+      <label class="btn ghost" for="payfile">upload payslip</label>
+      <input type="file" id="payfile" accept=".pdf,application/pdf" hidden>
+      <span id="paynote" class="dim">one upload sets the monthly base — repeat only when pay changes</span>
+    </div>
+    <div id="payprev" hidden>
+      <div class="resultline" id="payhead" style="padding-top:12px"></div>
+      <table id="paytable"></table>
+      <div class="resultline" id="paydiff"></div>
+      <div class="cardform">
+        <select id="paytarget"></select>
+        <input id="payname" placeholder="income name" style="width:200px">
+        <button type="button" id="paysave">use as base</button>
+        <a class="linky" id="paycancel">cancel</a>
+      </div>
+    </div>
+  </div>
+
+  <h2>② spending · one list — everything money goes to</h2>
+  <div class="card">
+    <div class="skelwrap"><div class="skel" style="width:64%"></div><div class="skel" style="width:58%"></div><div class="skel" style="width:70%"></div></div>
+    <table id="t-spend"></table>
+    <form id="f-spend" class="cardform">
+      <input name="name" placeholder="name" required style="width:150px">
+      <input name="tag" placeholder="tag (Housing, Car…)" list="taglist" style="width:150px">
+      <datalist id="taglist"></datalist>
+      <input name="amount" type="number" step="0.01" min="0" placeholder="RM">
+      <select name="repeat">
+        <optgroup label="counted in the map">
+          <option value="monthly">monthly</option>
+          <option value="quarterly">quarterly</option>
+          <option value="half-yearly">half-yearly</option>
+          <option value="yearly">yearly</option>
+        </optgroup>
+        <optgroup label="radar only">
+          <option value="every-n">every N months</option>
+          <option value="expiry">fixed expiry</option>
+          <option value="log">log only</option>
+        </optgroup>
+      </select>
+      <input name="n_months" type="number" min="1" step="1" placeholder="N months" style="width:95px" hidden>
+      <label class="chk" id="spend-date"><span id="spend-datetxt">renews</span> <input type="date" name="on"></label>
+      <label class="chk" id="spend-est"><input type="checkbox" name="est">≈ estimate</label>
+      <input name="notes" placeholder="notes" class="grow">
+      <button>add</button><a class="cancel">cancel</a>
+    </form>
+  </div>
+
+  <h2>③ goals · click a goal to log contributions</h2>
+  <div class="card">
+    <div class="skelwrap"><div class="skel" style="width:48%"></div></div>
+    <table id="t-goal"></table>
+    <form id="f-goal" class="cardform">
+      <input name="name" placeholder="name" required style="width:200px">
+      <input name="target_amount" type="number" step="0.01" min="0" placeholder="target RM" required>
+      <input name="deadline" type="date" required>
+      <label class="chk" title="deadline rolls to Dec 31 every year; contributions count per calendar year"><input type="checkbox" name="yearly">resets yearly</label>
+      <input name="notes" placeholder="notes" class="grow">
+      <button>add</button><a class="cancel">cancel</a>
+    </form>
+  </div>
+
+</main>
+<script src="/static/app.js?v=2"></script>
+<script>
+let S = null;          // last /api/summary payload
+let ROWS = {};         // entity -> id -> row object (for edit)
+
+const MAPPED = ["monthly", "quarterly", "half-yearly", "yearly"];
+const repeatKind = r => MAPPED.includes(r) ? "expense" : "tracker";
+
+const act = (entity, id) =>
+  `<td class="act"><a class="iconbtn" onclick="edit('${entity}',${id})" title="edit">${ICON.pen}</a>` +
+  `<a class="iconbtn" onclick="del('${entity}',${id})" title="delete">${ICON.x}</a></td>`;
+
+function table(id, rows, emptyMsg) {
+  $(id).innerHTML = rows.join("") || `<tr><td class="empty">${emptyMsg}</td></tr>`;
+}
+
+// ---- ① income: each income row, its deductions indented, per-income net
+
+function renderIncome() {
+  const rows = [];
+  for (const i of S.incomes) {
+    ROWS.income[i.id] = i;
+    rows.push(`<tr id="r-income-${i.id}"><td>${esc(i.name)}</td>` +
+              `<td class="n">${fmt(i.gross_monthly)}/mo</td>${act("income", i.id)}</tr>`);
+    const ds = S.deductions.filter(d => d.income_id === i.id);
+    for (const d of ds) {
+      ROWS.deduction[d.id] = d;
+      rows.push(`<tr id="r-deduction-${d.id}"><td class="subpad mut">${esc(d.name)}</td>` +
+                `<td class="n mut">− ${fmt(d.amount_monthly)}/mo</td>${act("deduction", d.id)}</tr>`);
+    }
+    if (ds.length)
+      rows.push(`<tr class="total"><td class="subpad">net</td>` +
+                `<td class="n">${fmt(i.gross_monthly - ds.reduce((t, d) => t + d.amount_monthly, 0))}/mo</td><td></td></tr>`);
+  }
+  table("t-income", rows, "no income yet — add your salary or upload a payslip");
+  fillSelect(document.querySelector("#f-deduction [name=income_id]"), S.incomes, i => i.name);
+}
+
+// ---- ② spending: expenses + trackers as one list; the repeat rule decides which
+
+function renderSpend() {
+  const list = [];
+  for (const c of S.categories)
+    for (const e of c.items) {
+      ROWS.expense[e.id] = {...e, _cat: c.name};
+      list.push({kind: "expense", id: e.id, name: e.name, est: e.is_estimate, tag: c.name,
+                 rm: e.amount, rep: e.cadence, mo: e.monthly_eq,
+                 next: e.next_roll, days: e.days_to_roll});
+    }
+  for (const t of S.trackers) {
+    ROWS.tracker[t.id] = t;
+    list.push({kind: "tracker", id: t.id, name: t.name, tag: t.grp || "",
+               rm: t.expected_cost,
+               rep: t.expires_on ? "fixed expiry" : t.interval_months ? `every ${t.interval_months} mo` : "log only",
+               mo: null, next: t.next_due, days: t.days_to_due});
+  }
+  list.sort((a, b) => a.tag.localeCompare(b.tag) || a.name.localeCompare(b.name));
+
+  const rows = list.map(r => {
+    const pill = r.next == null ? ""
+      : r.days < 0 ? ` <span class="pill bad">${-r.days}d late</span>`
+      : ` <span class="pill${r.days <= 14 ? " warn" : ""}">in ${r.days}d</span>`;
+    return `<tr id="r-${r.kind}-${r.id}"><td>${esc(r.name)}${r.est ? ' <span class="pill" title="estimate">≈</span>' : ""}</td>` +
+      `<td class="mut">${esc(r.tag)}</td>` +
+      `<td class="n">${r.rm != null ? fmt(r.rm) : ""}</td>` +
+      `<td class="mut">${r.rep}</td>` +
+      `<td class="n mut">${r.mo != null ? fmt(r.mo) : '<span class="dim" title="not counted — the lump estimates cover it">–</span>'}</td>` +
+      `<td class="datecell mut">${r.next ? r.next + pill : ""}</td>` +
+      `<td class="act"><a class="iconbtn" onclick="editSpend('${r.kind}',${r.id})" title="edit">${ICON.pen}</a>` +
+      `<a class="iconbtn" onclick="del('${r.kind}',${r.id})" title="delete">${ICON.x}</a></td></tr>`;
+  });
+  if (rows.length)
+    rows.unshift(`<tr><th>name</th><th>tag</th><th class="n">RM</th><th>repeats</th><th class="n">/mo</th><th>next</th><th></th></tr>`);
+  table("t-spend", rows, "nothing yet — rent, Netflix, road tax, car service, daily ≈ lump all go here");
+
+  const tags = new Set(S.categories.map(c => c.name));
+  for (const t of S.trackers) if (t.grp) tags.add(t.grp);
+  $("taglist").innerHTML = [...tags].sort().map(t => `<option value="${esc(t)}">`).join("");
+}
+
+function spendForm() {
+  const el = $("f-spend").elements, r = el.repeat.value;
+  const isExp = repeatKind(r) === "expense";
+  el.n_months.hidden = r !== "every-n";
+  el.n_months.required = r === "every-n";
+  $("spend-date").hidden = !(isExp || r === "expiry");
+  $("spend-datetxt").textContent = r === "expiry" ? "expires" : "renews";
+  el.on.required = r === "expiry";
+  el.on.title = r === "expiry" ? "expiry date" : "renews on (optional)";
+  $("spend-est").hidden = !isExp;
+  el.amount.required = isExp;
+  el.amount.placeholder = isExp ? "RM" : "expected RM";
+}
+
+function editSpend(kind, id) {
+  clearSpend();
+  const f = $("f-spend"), el = f.elements, row = ROWS[kind][id];
+  if (kind === "expense") {
+    el.repeat.value = row.cadence;
+    el.tag.value = row._cat;
+    el.amount.value = row.amount;
+    el.on.value = row.renews_on || "";
+    el.est.checked = !!row.is_estimate;
+  } else {
+    el.repeat.value = row.expires_on ? "expiry" : row.interval_months ? "every-n" : "log";
+    el.tag.value = row.grp || "";
+    el.amount.value = row.expected_cost ?? "";
+    el.n_months.value = row.interval_months ?? "";
+    el.on.value = row.expires_on || "";
+  }
+  el.name.value = row.name;
+  el.notes.value = row.notes || "";
+  f.dataset.edit = kind + ":" + id;
+  f.querySelector("button").textContent = "save";
+  spendForm();
+  const tr = $(`r-${kind}-${id}`);
+  if (tr) tr.classList.add("editing");
+  el.name.focus();
+}
+
+function clearSpend() {
+  const f = $("f-spend");
+  f.reset();
+  delete f.dataset.edit;
+  f.querySelector("button").textContent = "add";
+  document.querySelectorAll("tr.editing").forEach(r => r.classList.remove("editing"));
+  spendForm();
+}
+
+$("f-spend").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const f = ev.target, el = f.elements, r = el.repeat.value, kind = repeatKind(r);
+  const tag = el.tag.value.trim();
+  const payload = kind === "expense"
+    ? {name: el.name.value.trim(), category: tag || "Misc", amount: el.amount.value,
+       cadence: r, is_estimate: el.est.checked ? 1 : 0, renews_on: el.on.value,
+       notes: el.notes.value}
+    : {name: el.name.value.trim(), grp: tag, expected_cost: el.amount.value,
+       interval_months: r === "every-n" ? el.n_months.value : "",
+       expires_on: r === "expiry" ? el.on.value : "", notes: el.notes.value};
+  try {
+    if (f.dataset.edit) {
+      const [oldKind, id] = f.dataset.edit.split(":");
+      if (oldKind === kind) {
+        await api("PUT", `/api/${kind}/${id}`, payload);
+      } else {
+        if (oldKind === "tracker" && ROWS.tracker[id].entries.length &&
+            !confirm("this becomes a mapped expense — its log history goes too. continue?")) return;
+        await api("POST", `/api/${kind}`, payload);
+        await api("DELETE", `/api/${oldKind}/${id}`);
+      }
+    } else {
+      await api("POST", `/api/${kind}`, payload);
+    }
+  } catch { return; }
+  clearSpend();
+  await load();
+});
+$("f-spend").elements.repeat.addEventListener("change", spendForm);
+$("f-spend").querySelector(".cancel").addEventListener("click", clearSpend);
+spendForm();
+
+// ---- ③ goals: click a goal to see / log contributions
+
+function renderGoals() {
+  const rows = [];
+  if (S.goals.length)
+    rows.push(`<tr><th>name</th><th class="n">target</th><th>deadline</th><th>notes</th><th></th></tr>`);
+  for (const g of S.goals) {
+    ROWS.goal[g.id] = g;
+    rows.push(`<tr id="r-goal-${g.id}" class="rowlink" onclick="toggleGoal(${g.id}, this)">` +
+      `<td><span class="chev">${ICON.chev}</span>${esc(g.name)}${g.yearly ? ' <span class="pill">yearly</span>' : ""}` +
+      ` <span class="dim">· ${g.contributions.length} logged</span></td>` +
+      `<td class="n">${fmt(g.target_amount)}</td><td class="datecell mut">by ${g.deadline}</td>` +
+      `<td class="mut">${esc(g.notes)}</td>` +
+      `<td class="act"><a class="iconbtn" onclick="event.stopPropagation();edit('goal',${g.id})" title="edit">${ICON.pen}</a>` +
+      `<a class="iconbtn" onclick="event.stopPropagation();del('goal',${g.id})" title="delete">${ICON.x}</a></td></tr>`);
+    for (const c of g.contributions)
+      rows.push(`<tr class="item g${g.id}" hidden><td class="subpad datecell mut">${c.on_date}</td>` +
+        `<td class="n mut">${fmt(c.amount)}</td><td colspan="2"></td>` +
+        `<td class="act"><a class="iconbtn" onclick="del('contribution',${c.id})" title="delete">${ICON.x}</a></td></tr>`);
+    rows.push(`<tr class="item logrow g${g.id}" hidden><td colspan="5" class="subpad">` +
+      `<form class="cardform" style="padding:2px 0 8px;border:none" onsubmit="return addContribution(event,${g.id})">` +
+      `<input type="date" name="on_date" value="${S.as_of}" required>` +
+      `<input type="number" name="amount" step="0.01" min="0" placeholder="RM" required>` +
+      `<button class="sm">log contribution</button></form></td></tr>`);
+  }
+  table("t-goal", rows, "no goals yet");
+}
+
+function toggleGoal(id, row) {
+  row.classList.toggle("open");
+  document.querySelectorAll(".g" + id).forEach(r => r.hidden = !r.hidden);
+}
+
+async function addContribution(ev, goalId) {
+  ev.preventDefault();
+  const el = ev.target.elements;
+  try {
+    await api("POST", "/api/contribution",
+              {goal_id: goalId, on_date: el.on_date.value, amount: el.amount.value});
+    await load();
+  } catch {}
+  return false;
+}
+
+// ---- payslip: upload → parse on the server → editable preview → save
+
+let PAY = null;   // last /api/payslip/parse payload (amounts mutated by edits)
+
+function payNote() {
+  const p = S && S.payslip_last;
+  $("paynote").textContent = p
+    ? `monthly base · ${p.period_label || p.period || "?"} payslip · saved ${p.saved_on}`
+    : "one upload sets the monthly base — repeat only when pay changes";
+}
+
+function payNetLine() {
+  const net = PAY.gross - PAY.deductions.reduce((s, d) => s + (+d.amount || 0), 0);
+  $("pnet").textContent = fmt(net);
+  $("pnetok").innerHTML = Math.abs(net - PAY.net) <= 0.02
+    ? '<span class="pill ok">matches slip</span>'
+    : `<span class="pill warn">slip says ${fmt(PAY.net)}</span>`;
+  payDiff();
+}
+
+function payDiff() {
+  // one line: how this slip differs from the income base it would replace
+  const el = $("paydiff");
+  const inc = PAY.incomes.find(i => String(i.id) === $("paytarget").value);
+  if (!inc || !S) { el.textContent = ""; return; }
+  const baseDed = {};
+  for (const d of S.deductions.filter(d => d.income_id === inc.id)) {
+    const k = d.name.toLowerCase();
+    baseDed[k] = (baseDed[k] || 0) + d.amount_monthly;
+  }
+  const parts = [], seen = new Set();
+  if (Math.abs(PAY.gross - inc.gross_monthly) > 0.005)
+    parts.push(`gross ${sgn(PAY.gross - inc.gross_monthly)}`);
+  for (const d of PAY.deductions) {
+    const k = d.name.trim().toLowerCase();
+    seen.add(k);
+    const delta = (+d.amount || 0) - (baseDed[k] || 0);
+    if (Math.abs(delta) > 0.005) parts.push(`${d.name.trim()} ${sgn(delta)}`);
+  }
+  for (const k in baseDed)
+    if (!seen.has(k)) parts.push(`${k} gone`);
+  const baseNet = inc.gross_monthly - Object.values(baseDed).reduce((s, v) => s + v, 0);
+  const net = PAY.gross - PAY.deductions.reduce((s, d) => s + (+d.amount || 0), 0);
+  if (Math.abs(net - baseNet) > 0.005) parts.push(`net ${sgn(net - baseNet)}`);
+  el.textContent = parts.length
+    ? "vs current base: " + parts.join(" · ")
+    : "matches the current base — nothing changes";
+}
+
+function renderPay() {
+  const ok = PAY.checks.deductions_reconcile && PAY.checks.identity !== false;
+  $("payhead").innerHTML =
+    `${esc(PAY.period_label || "period ?")} · ${esc(PAY.employer || "employer ?")} · ` +
+    (ok ? '<span class="pill ok">reconciles ✓</span>'
+        : '<span class="pill warn">check the numbers</span>') +
+    (PAY.warnings.length ? ` <span class="mut">${esc(PAY.warnings.join(" · "))}</span>` : "");
+
+  $("paytable").innerHTML = [
+    `<tr><td>gross</td><td class="n"><input type="number" step="0.01" min="0" value="${PAY.gross.toFixed(2)}"
+       oninput="PAY.gross=+this.value||0;payNetLine()"></td><td></td></tr>`,
+    ...PAY.deductions.map((d, i) =>
+      `<tr><td><input value="${esc(d.name)}" style="width:180px"` +
+      (d.source && d.source !== d.name ? ` title="on slip: ${esc(d.source)}"` : "") +
+      ` oninput="PAY.deductions[${i}].name=this.value"></td>` +
+      `<td class="n"><input type="number" step="0.01" min="0" value="${(+d.amount).toFixed(2)}"
+         oninput="PAY.deductions[${i}].amount=+this.value||0;payNetLine()"></td>` +
+      `<td class="act"><a class="iconbtn" title="remove"
+         onclick="PAY.deductions.splice(${i},1);renderPay()">${ICON.x}</a></td></tr>`),
+    `<tr class="net"><td>net</td><td class="n" id="pnet"></td><td id="pnetok"></td></tr>`,
+  ].join("");
+  payNetLine();
+
+  $("paytarget").innerHTML =
+    PAY.incomes.map(i => `<option value="${i.id}">update · ${esc(i.name)}</option>`).join("") +
+    '<option value="">add as new income</option>';
+  $("paytarget").value = PAY.incomes.length ? String(PAY.incomes[0].id) : "";
+  payTargetSync();
+}
+
+function payTargetSync() {
+  const inc = PAY.incomes.find(i => String(i.id) === $("paytarget").value);
+  $("payname").value = inc ? inc.name : PAY.suggested_name;
+  payDiff();
+}
+
+$("payfile").addEventListener("change", async () => {
+  const file = $("payfile").files[0];
+  if (!file) return;
+  $("paynote").textContent = "reading " + file.name + "…";
+  const fd = new FormData();
+  fd.append("file", file);
+  const r = await fetch("/api/payslip/parse", {method: "POST", body: fd});
+  if (r.status === 401) { location.href = "/login"; return; }
+  const j = await r.json().catch(() => ({}));
+  $("payfile").value = "";
+  payNote();
+  if (!r.ok) { toast(j.error || "could not read payslip"); return; }
+  PAY = j;
+  renderPay();
+  $("payprev").hidden = false;
+});
+
+$("paytarget").addEventListener("change", payTargetSync);
+$("paycancel").addEventListener("click", () => { $("payprev").hidden = true; PAY = null; });
+
+$("paysave").addEventListener("click", async () => {
+  const name = $("payname").value.trim();
+  if (!name) { toast("income needs a name"); return; }
+  try {
+    await api("POST", "/api/payslip/save", {
+      income_id: $("paytarget").value || null,
+      name,
+      gross_monthly: PAY.gross,
+      deductions: PAY.deductions.filter(d => d.name.trim())
+        .map(d => ({name: d.name.trim(), amount_monthly: +d.amount || 0})),
+      period: PAY.period, period_label: PAY.period_label,
+      employer: PAY.employer, filename: PAY.filename,
+    });
+  } catch { return; }
+  $("payprev").hidden = true;
+  PAY = null;
+  await load();
+});
+
+// ---- shared crud plumbing for the plain forms (income, deduction, goal)
+
+function fillSelect(sel, items, label) {
+  sel.innerHTML = items.map(i => `<option value="${i.id}">${esc(label(i))}</option>`).join("");
+}
+
+function readForm(f) {
+  const data = {};
+  for (const el of f.elements) {
+    if (!el.name) continue;
+    data[el.name] = el.type === "checkbox" ? (el.checked ? 1 : 0) : el.value;
+  }
+  return data;
+}
+
+function clearForm(f) {
+  f.reset();
+  delete f.dataset.edit;
+  f.querySelector("button").textContent = f.querySelector("button").dataset.add;
+  document.querySelectorAll("tr.editing").forEach(r => r.classList.remove("editing"));
+}
+
+function edit(entity, id) {
+  const f = $("f-" + entity);
+  const row = ROWS[entity][id];
+  for (const el of f.elements) {
+    if (!el.name || row[el.name] === undefined) continue;
+    if (el.type === "checkbox") el.checked = !!row[el.name];
+    else el.value = row[el.name] ?? "";
+  }
+  f.dataset.edit = id;
+  f.querySelector("button").textContent = "save";
+  document.querySelectorAll("tr.editing").forEach(r => r.classList.remove("editing"));
+  const tr = $(`r-${entity}-${id}`);
+  if (tr) tr.classList.add("editing");
+}
+
+async function del(entity, id) {
+  if (!confirm("delete?")) return;
+  try {
+    await api("DELETE", `/api/${entity}/${id}`);
+    await load();
+  } catch {}
+}
+
+for (const name of ["income", "deduction", "goal"]) {
+  const f = $("f-" + name);
+  const btn = f.querySelector("button");
+  btn.dataset.add = btn.textContent;
+  f.addEventListener("submit", async ev => {
+    ev.preventDefault();
+    try {
+      if (f.dataset.edit) await api("PUT", `/api/${name}/${f.dataset.edit}`, readForm(f));
+      else await api("POST", `/api/${name}`, readForm(f));
+    } catch { return; }
+    clearForm(f);
+    await load();
+  });
+  f.querySelector(".cancel").addEventListener("click", () => clearForm(f));
+}
+
+async function load() {
+  S = await getJSON("/api/summary");
+  ROWS = {income: {}, deduction: {}, expense: {}, tracker: {}, goal: {}, contribution: {}};
+  renderIncome();
+  renderSpend();
+  renderGoals();
+  payNote();
+  unskel();
+}
+load().catch(e => { skelFail(); console.error(e); });
+</script>
+</body>
+</html>

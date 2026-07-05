@@ -3,106 +3,131 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0d13">
 <title>Budget</title>
-<style>
-  :root { color-scheme: dark; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #111418; color: #e6e6e6; margin: 0; padding: 20px; }
-  .wrap { max-width: 760px; margin: 0 auto; }
-  header { display: flex; align-items: baseline; margin-bottom: 4px; }
-  h1 { font-size: 1.2em; margin: 0; }
-  a.nav { color: #4da3ff; text-decoration: none; font-size: 0.9em; margin-left: 14px; }
-  a.nav.first { margin-left: auto; }
-  .sub { color: #9aa4b0; font-size: 0.85em; margin-bottom: 12px; }
-  .banner { border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.95em;
-            border: 1px solid #2c333d; background: #1a1f26; }
-  .banner b { color: #4ade80; }
-  .banner.neg b { color: #f87171; }
-  .banner a { color: #4da3ff; }
-  .card { background: #1a1f26; border: 1px solid #2c333d; border-radius: 10px; padding: 6px 16px; margin-bottom: 14px; }
-  table { border-collapse: collapse; width: 100%; }
-  td { padding: 8px 10px; border-top: 1px solid #262d36; font-size: 0.9em; }
-  tr:first-child td { border-top: none; }
-  .n { text-align: right; white-space: nowrap; }
-  .pct { color: #9aa4b0; text-align: right; width: 64px; white-space: nowrap; font-size: 0.95em; }
-  .grey { color: #9aa4b0; }
-  tr.total td { font-weight: 700; }
-  tr.net td { color: #4da3ff; }
-  tr.surplus td { color: #4ade80; }
-  tr.surplus.neg td { color: #f87171; }
-  tr.cat { cursor: pointer; }
-  tr.item td { border-top: none; padding: 0 10px 7px 26px; color: #9aa4b0; font-size: 0.82em; }
-  .od { color: #f87171; }
-  .goal { margin: 4px 0 16px; }
-  .goal .line1 { font-size: 0.95em; }
-  .goal .line1 b { color: #e6e6e6; }
-  .goal .line2 { color: #9aa4b0; font-size: 0.84em; margin-top: 3px; }
-  .goal .line2 b { color: #4ade80; font-weight: 600; }
-  .barwrap { background: #12161b; border-radius: 4px; height: 6px; margin-top: 7px; overflow: hidden; }
-  .bar { background: #4da3ff; height: 6px; float: left; }
-  .bar.proj { background: #2b5c8a; }
-  h2 { font-size: 0.8em; color: #9aa4b0; font-weight: 600; letter-spacing: 0.08em; margin: 18px 0 8px; }
-</style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='32' y2='32'%3E%3Cstop stop-color='%233ecf8e'/%3E%3Cstop offset='1' stop-color='%234f7cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Crect x='7' y='17' width='4.5' height='8' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='13.75' y='12' width='4.5' height='13' rx='2' fill='%23fff' opacity='.9'/%3E%3Crect x='20.5' y='7' width='4.5' height='18' rx='2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/app.css?v=2">
 </head>
-<body>
-<div class="wrap">
-  <header><h1>Budget</h1><a class="nav first" href="/subs">subs</a><a class="nav" href="/life">life</a><a class="nav" href="/history">history</a><a class="nav" href="/reconcile">reconcile</a><a class="nav" href="/manage">manage</a></header>
-  <div class="sub">net income &rarr; categories &rarr; surplus &rarr; goals</div>
-  <div class="banner" id="banner">loading&hellip;</div>
-  <div class="sub" id="driftline" hidden></div>
-  <div class="card"><table id="waterfall"></table></div>
-  <h2>GOALS</h2>
-  <div id="goals"></div>
+<body data-page="home">
+<header id="top"></header>
+<main class="wrap">
+
+  <section class="card hero">
+    <div class="hero-main">
+      <div>
+        <div class="microlabel">surplus / mo</div>
+        <div class="bignum" id="h-sur">&nbsp;</div>
+        <div class="hero-sub" id="h-sursub"></div>
+      </div>
+      <div class="hero-side">
+        <div>
+          <div class="microlabel">net / mo</div>
+          <div class="midnum" id="h-net">—</div>
+          <div class="tiny" id="h-netsub"></div>
+        </div>
+        <div>
+          <div class="microlabel">mapped</div>
+          <div class="midnum" id="h-map">—</div>
+          <div class="tiny" id="h-mapsub"></div>
+        </div>
+      </div>
+    </div>
+    <div class="allocbar" id="alloc" hidden></div>
+  </section>
+
+  <div class="inline-note" id="driftline" hidden></div>
+
+  <h2>map</h2>
+  <div class="card">
+    <div class="skelwrap"><div class="skel" style="width:42%"></div><div class="skel" style="width:78%"></div><div class="skel" style="width:64%"></div><div class="skel" style="width:70%"></div></div>
+    <table id="waterfall"></table>
+  </div>
+
+  <h2>goals</h2>
+  <div class="card" id="goals">
+    <div class="skelwrap"><div class="skel" style="width:55%"></div><div class="skel" style="width:80%"></div></div>
+  </div>
+
   <div id="upwrap" hidden>
-    <h2>UPCOMING (90 DAYS)</h2>
+    <h2>upcoming · 90 days</h2>
     <div class="card"><table id="upcoming"></table></div>
   </div>
-</div>
-<script>
-const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const fmt = v => "RM " + (Math.abs(v % 1) > 0.004
-  ? v.toLocaleString("en-MY", {minimumFractionDigits: 2, maximumFractionDigits: 2})
-  : v.toLocaleString("en-MY", {maximumFractionDigits: 0}));
-const pc = v => v == null ? "–" : v.toFixed(1) + "%";
 
-function banner(s) {
-  const el = document.getElementById("banner");
+</main>
+<script src="/static/app.js?v=2"></script>
+<script>
+const SEG = ["#5e8ef7", "#8b7cf6", "#c07af0", "#e57ab1", "#ef9366", "#e3bb56", "#56b4d3", "#6aa9e9", "#9d8ef2", "#d98a8a"];
+
+function hero(s) {
+  const sur = $("h-sur"), sub = $("h-sursub");
   if (!s.incomes.length) {
-    el.innerHTML = 'no income set yet — start in <a href="/manage">manage</a>';
+    sur.textContent = "—";
+    sur.className = "bignum";
+    sub.innerHTML = 'no income set yet — start in <a href="/plan">plan</a>';
+    $("h-net").textContent = "—";
+    $("h-map").textContent = "—";
+    $("h-netsub").textContent = "";
+    $("h-mapsub").textContent = "";
+    $("alloc").hidden = true;
     return;
   }
-  el.classList.toggle("neg", s.surplus < 0);
-  el.innerHTML = `net <b>${fmt(s.net)}</b>/mo · mapped ${fmt(s.mapped)} (${pc(s.mapped_pct)})` +
-                 ` · surplus <b>${fmt(s.surplus)}</b>/mo (${pc(s.surplus_pct)})`;
+  sur.textContent = fmt(s.surplus);
+  sur.className = "bignum " + (s.surplus < 0 ? "isneg" : "ispos");
+  sub.textContent = pc(s.surplus_pct) + " of net";
+  $("h-net").textContent = fmt(s.net);
+  $("h-netsub").textContent = "gross " + fmt(s.gross);
+  $("h-map").textContent = fmt(s.mapped);
+  $("h-mapsub").textContent = pc(s.mapped_pct) + " of net";
+  alloc(s);
 }
 
-function itemLine(e) {
-  let t = esc(e.name) + (e.is_estimate ? " ≈" : "") + " · " + fmt(e.monthly_eq) + "/mo";
-  if (e.cadence !== "monthly") t += ` (${e.cadence} ${fmt(e.amount)})`;
-  if (e.next_roll) t += ` · renews ${e.next_roll} (${e.days_to_roll}d)`;
-  return t;
+function alloc(s) {
+  const bar = $("alloc");
+  const cats = s.categories.filter(c => c.monthly > 0).sort((a, b) => b.monthly - a.monthly);
+  if (!cats.length || s.net <= 0) { bar.hidden = true; return; }
+  const denom = Math.max(s.net, s.mapped);
+  const segs = cats.map((c, i) =>
+    `<div class="seg" style="width:${(100 * c.monthly / denom).toFixed(2)}%;background:${SEG[i % SEG.length]}"` +
+    ` title="${esc(c.name)} · ${fmt(c.monthly)}/mo (${pc(c.pct_of_net)})"></div>`);
+  if (s.surplus > 0)
+    segs.push(`<div class="seg sur" style="width:${(100 * s.surplus / denom).toFixed(2)}%"` +
+              ` title="surplus · ${fmt(s.surplus)}/mo (${pc(s.surplus_pct)})"></div>`);
+  bar.innerHTML = segs.join("");
+  bar.hidden = false;
+}
+
+function itemCells(e) {
+  const pills = [];
+  if (e.cadence !== "monthly") pills.push(`<span class="pill">${e.cadence} ${fmt(e.amount)}</span>`);
+  if (e.is_estimate) pills.push('<span class="pill" title="estimate">≈</span>');
+  const roll = e.next_roll
+    ? `<span class="pill${e.days_to_roll <= 14 ? " warn" : ""}" title="renews ${e.next_roll}">${e.days_to_roll}d</span>`
+    : "";
+  return `<td class="subpad mut">${esc(e.name)}${pills.length ? " " + pills.join(" ") : ""}</td>` +
+         `<td class="n mut">${fmt(e.monthly_eq)}</td><td class="pct">${roll}</td>`;
 }
 
 function waterfall(s) {
   const rows = [];
   rows.push(`<tr><td>gross income</td><td class="n">${fmt(s.gross)}</td><td class="pct"></td></tr>`);
   for (const d of s.deductions)
-    rows.push(`<tr><td class="grey" style="padding-left:26px">${esc(d.name)}</td>` +
-              `<td class="n grey">− ${fmt(d.amount_monthly)}</td><td class="pct"></td></tr>`);
+    rows.push(`<tr><td class="subpad mut">${esc(d.name)}</td><td class="n mut">− ${fmt(d.amount_monthly)}</td><td class="pct"></td></tr>`);
   rows.push(`<tr class="total net"><td>net income</td><td class="n">${fmt(s.net)}</td><td class="pct">100%</td></tr>`);
   const cats = s.categories.filter(c => c.items.length).sort((a, b) => b.monthly - a.monthly);
   for (const c of cats) {
-    rows.push(`<tr class="cat" onclick="toggle(${c.id})"><td>${esc(c.name)}</td>` +
+    rows.push(`<tr class="rowlink" onclick="toggle(${c.id}, this)">` +
+              `<td><span class="chev">${ICON.chev}</span>${esc(c.name)}</td>` +
               `<td class="n">${fmt(c.monthly)}</td><td class="pct">${pc(c.pct_of_net)}</td></tr>`);
     for (const e of c.items.sort((a, b) => b.monthly_eq - a.monthly_eq))
-      rows.push(`<tr class="item c${c.id}" hidden><td colspan="3">${itemLine(e)}</td></tr>`);
+      rows.push(`<tr class="item c${c.id}" hidden>${itemCells(e)}</tr>`);
   }
-  const neg = s.surplus < 0 ? " neg" : "";
-  rows.push(`<tr class="total surplus${neg}"><td>surplus</td><td class="n">${fmt(s.surplus)}</td>` +
-            `<td class="pct">${pc(s.surplus_pct)}</td></tr>`);
-  document.getElementById("waterfall").innerHTML = rows.join("");
+  rows.push(`<tr class="total surplus${s.surplus < 0 ? " neg" : ""}"><td>surplus</td>` +
+            `<td class="n">${fmt(s.surplus)}</td><td class="pct">${pc(s.surplus_pct)}</td></tr>`);
+  $("waterfall").innerHTML = rows.join("");
 }
 
-function toggle(id) {
+function toggle(id, row) {
+  row.classList.toggle("open");
   document.querySelectorAll(".item.c" + id).forEach(r => r.hidden = !r.hidden);
 }
 
@@ -112,62 +137,65 @@ function goals(s) {
     const done = g.remaining <= 0;
     const donePct = Math.min(100, 100 * g.contributed / g.target_amount);
     const projPct = Math.min(100 - donePct, 100 * g.projected_by_deadline / g.target_amount);
-    let line2;
+    let sub;
     if (done) {
-      line2 = "target reached";
+      sub = '<span class="pill ok">target reached</span>';
     } else if (g.months_left <= 0) {
-      line2 = "deadline passed";
+      sub = '<span class="pill bad">deadline passed</span>';
     } else if (!s.incomes.length || g.surplus_monthly <= 0) {
-      line2 = `needs ${fmt(g.required_monthly)}/mo · no surplus available`;
+      sub = `needs ${fmt(g.required_monthly)}/mo · no surplus available`;
     } else {
-      line2 = `needs ${fmt(g.required_monthly)}/mo to hit target · surplus gives <b>${fmt(g.surplus_monthly)}/mo` +
-              ` → ${fmt(g.projected_by_deadline)}</b> by ${g.deadline} (covers ${pc(g.coverage_pct)} of the gap)`;
+      sub = `needs ${fmt(g.required_monthly)}/mo to hit target · surplus gives <b>${fmt(g.surplus_monthly)}/mo` +
+            ` → ${fmt(g.projected_by_deadline)}</b> by ${g.deadline} (covers ${pc(g.coverage_pct)} of the gap)`;
     }
     out.push(`<div class="goal">
-      <div class="line1"><b>${esc(g.name)}</b> · ${fmt(g.contributed)} in · gap ${fmt(Math.max(0, g.remaining))}` +
-      ` · ${g.months_left} mo left</div>
-      <div class="line2">${line2}</div>
-      <div class="barwrap"><div class="bar" style="width:${donePct}%"></div>` +
-      `<div class="bar proj" style="width:${projPct}%"></div></div>
+      <div class="goal-top"><span class="goal-name">${esc(g.name)}${g.yearly ? ' <span class="pill">resets yearly</span>' : ""}</span>` +
+      `<span class="goal-meta">${fmt(g.contributed)} in · gap ${fmt(Math.max(0, g.remaining))} · ${g.months_left} mo left</span></div>
+      <div class="track"><div class="fill done" style="width:${donePct}%"></div><div class="fill proj" style="width:${projPct}%"></div></div>
+      <div class="goal-sub">${sub}</div>
     </div>`);
   }
-  document.getElementById("goals").innerHTML = out.join("") || '<div class="grey" style="font-size:0.85em">no goals yet</div>';
+  $("goals").innerHTML = out.join("") || '<div class="empty">no goals yet</div>';
 }
 
 function upcoming(s) {
-  const wrap = document.getElementById("upwrap");
+  const wrap = $("upwrap");
   wrap.hidden = !s.upcoming.length;
   if (wrap.hidden) return;
-  const rows = s.upcoming.map(u => {
+  const rows = [`<tr><th>when</th><th>item</th><th></th><th class="n">amount</th></tr>`];
+  for (const u of s.upcoming) {
     const od = u.days < 0;
+    const chip = od ? `<span class="pill bad">${-u.days}d late</span>`
+                    : `<span class="pill${u.days <= 14 ? " warn" : ""}">in ${u.days}d</span>`;
     const amt = u.amount == null ? "–" : (u.expected ? "~ " : "") + fmt(u.amount);
-    return `<tr><td class="${od ? "od" : "grey"}" style="width:130px">${u.on}${od ? ` (${-u.days}d)` : ""}</td>` +
-      `<td>${esc(u.name)} <span class="grey">${esc(u.category)}</span></td><td class="n">${amt}</td></tr>`;
-  });
+    rows.push(`<tr><td class="datecell">${u.on} ${chip}</td><td>${esc(u.name)}</td>` +
+              `<td class="mut">${esc(u.category)}</td><td class="n">${amt}</td></tr>`);
+  }
   if (s.upcoming.length > 1) {
     const known = s.upcoming.filter(u => u.amount != null);
     const approx = s.upcoming.some(u => u.expected || u.amount == null);
-    const tot = known.reduce((t, u) => t + u.amount, 0);
-    rows.push(`<tr class="total"><td></td><td>total</td><td class="n">${approx ? "~ " : ""}${fmt(tot)}</td></tr>`);
+    rows.push(`<tr class="total"><td></td><td>total</td><td></td>` +
+              `<td class="n">${approx ? "~ " : ""}${fmt(known.reduce((t, u) => t + u.amount, 0))}</td></tr>`);
   }
-  document.getElementById("upcoming").innerHTML = rows.join("");
+  $("upcoming").innerHTML = rows.join("");
 }
 
 function driftline(s) {
-  const el = document.getElementById("driftline"), d = s.drift;
+  const el = $("driftline"), d = s.drift;
   el.hidden = !(d && Math.abs(d.gap_monthly) >= 100);
   if (el.hidden) return;
   const over = d.gap_monthly < 0;
-  el.style.color = over ? "#f87171" : "#4ade80";
+  el.className = "inline-note " + (over ? "neg" : "pos");
   el.textContent = `drift check: ~${fmt(Math.abs(d.gap_monthly))}/mo ` +
     (over ? "unmapped spending" : "better than plan") + ` (${d.from} → ${d.to})`;
 }
 
 async function load() {
-  const s = await (await fetch("/api/summary")).json();
-  banner(s); waterfall(s); goals(s); upcoming(s); driftline(s);
+  const s = await getJSON("/api/summary");
+  hero(s); waterfall(s); goals(s); upcoming(s); driftline(s);
+  unskel();
 }
-load();
+load().catch(e => { skelFail(); console.error(e); });
 </script>
 </body>
 </html>
