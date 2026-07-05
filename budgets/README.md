@@ -13,7 +13,8 @@ Commands live in `..\bin` and are on PATH via forwarders in `C:\Users\etern\bin`
 Manual fallback: `python scripts/gui.py`.
 
 Four tabs, one per question (restructured 2026-07-05; the old /manage, /subs, /life,
-/history, /reconcile and /month URLs redirect to their new homes):
+/radar, /history, /reconcile and /month URLs redirect to their new homes). Nav labels:
+Budget · Plan · Upcoming · Savings.
 
 - `/` (home) — decide: gross -> deductions -> net -> categories (RM + % of net) -> surplus,
   goal pacing ("surplus gives RM X/mo -> RM Y by deadline"), and upcoming non-monthly
@@ -46,7 +47,7 @@ Four tabs, one per question (restructured 2026-07-05; the old /manage, /subs, /l
   tracking - conservative estimates only, later, per the locked scope.
   Plus a "tags" section at the bottom: rename or delete any tag (expense category
   or tracker group) with usage counts; deletes are refused while items still use it.
-- `/radar` — everything dated on one timeline, soonest first: expense renewals and
+- `/upcoming` (was /radar) — everything dated on one timeline, soonest first: expense renewals and
   tracker dues/expiries together. Tracker rows expand in place to log a renewal
   (expiry items offer "new expiry" in the same form - road tax renewals are one row);
   logging a past date backfills "last changed". Below it, the log-only list answers

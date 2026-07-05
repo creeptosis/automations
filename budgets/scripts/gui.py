@@ -1228,8 +1228,8 @@ def plan():
     return send_from_directory(app.static_folder, "plan.html")
 
 
-@app.get("/radar")
-def radar():
+@app.get("/upcoming")
+def upcoming_page():
     return send_from_directory(app.static_folder, "radar.html")
 
 
@@ -1239,9 +1239,9 @@ def savings():
 
 
 # pre-restructure tab urls (bookmarks, muscle memory) keep landing somewhere sane
-for _old, _new in (("/manage", "/plan"), ("/subs", "/radar"), ("/life", "/radar"),
-                   ("/history", "/savings"), ("/reconcile", "/savings"),
-                   ("/month", "/savings")):
+for _old, _new in (("/manage", "/plan"), ("/subs", "/upcoming"), ("/life", "/upcoming"),
+                   ("/radar", "/upcoming"), ("/history", "/savings"),
+                   ("/reconcile", "/savings"), ("/month", "/savings")):
     app.add_url_rule(_old, "legacy_" + _old.strip("/"),
                      (lambda target: lambda: redirect(target))(_new))
 

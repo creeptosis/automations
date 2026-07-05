@@ -24,10 +24,11 @@ const ICON = {
 const LOGO = '<svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#3ecf8e"/><stop offset="1" stop-color="#4f7cf0"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#lg)"/><rect x="7" y="17" width="4.5" height="8" rx="2" fill="#fff" opacity=".8"/><rect x="13.75" y="12" width="4.5" height="13" rx="2" fill="#fff" opacity=".9"/><rect x="20.5" y="7" width="4.5" height="18" rx="2" fill="#fff"/></svg>';
 
 (function mountNav() {
-  const links = [["/", "budget", "home"], ["/plan", "plan", "plan"],
-                 ["/radar", "radar", "radar"], ["/savings", "savings", "savings"]];
+  // brand is the logo alone — the first tab already reads "Budget"
+  const links = [["/", "Budget", "home"], ["/plan", "Plan", "plan"],
+                 ["/upcoming", "Upcoming", "radar"], ["/savings", "Savings", "savings"]];
   const here = document.body.dataset.page;
-  $("top").innerHTML = '<div class="nav-inner"><a class="brand" href="/">' + LOGO + "Budget</a><nav>" +
+  $("top").innerHTML = '<div class="nav-inner"><a class="brand" href="/">' + LOGO + "</a><nav>" +
     links.map(([href, label, key]) =>
       `<a href="${href}"${key === here ? ' class="on"' : ""}>${label}</a>`).join("") +
     "</nav></div>";
