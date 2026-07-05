@@ -54,7 +54,7 @@
   </div>
 
 </main>
-<script src="/static/app.js?v=3"></script>
+<script src="/static/app.js?v=4"></script>
 <script>
 const SEG = ["#5e8ef7", "#8b7cf6", "#c07af0", "#e57ab1", "#ef9366", "#e3bb56", "#56b4d3", "#6aa9e9", "#9d8ef2", "#d98a8a"];
 
@@ -100,6 +100,8 @@ function itemCells(e) {
   const pills = [];
   if (e.cadence !== "monthly") pills.push(`<span class="pill">${e.cadence} ${fmt(e.amount)}</span>`);
   if (e.is_estimate) pills.push('<span class="pill" title="estimate">≈</span>');
+  if (e.ended) pills.push('<span class="pill">ended</span>');
+  else if (e.ends_on) pills.push(`<span class="pill">until ${e.ends_on}</span>`);
   const roll = e.next_roll
     ? `<span class="pill${e.days_to_roll <= 14 ? " warn" : ""}" title="renews ${e.next_roll}">${e.days_to_roll}d</span>`
     : "";

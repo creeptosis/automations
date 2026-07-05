@@ -21,15 +21,19 @@ Four tabs, one per question (restructured 2026-07-05; the old /manage, /subs, /l
   the RM100k cap is per calendar year) roll their deadline to Dec 31 every year and
   count only that year's contributions - the goal never goes stale.
 - `/plan` — enter/edit everything, top to bottom in setup order.
-  ① income: gross with deductions indented beneath (per-income net line), or skip
-  typing entirely: upload a payslip PDF and the reader pulls gross, EPF/SOCSO/EIS/PCB,
+  ① income: gross with deductions indented beneath (per-income net line); forms stay
+  hidden until "+ income" (heading) or + on an income row (inline deduction under
+  that income) is pressed. Or skip typing entirely: upload a payslip PDF and the reader pulls gross, EPF/SOCSO/EIS/PCB,
   period and employer off it, refuses to trust itself unless the slip's own arithmetic
   reconciles, then previews a one-line diff vs the current base before replacing it.
   ② spending: ONE list for everything money goes to - rent, Netflix, road tax, car
   service, the daily ≈ lump. Every row is name + tag + RM + one repeat rule:
   monthly/quarterly/half-yearly/yearly (counted in the map, optional renews-on date)
   or every-N-months / fixed-expiry / log-only (radar only - expected money the lumps
-  already cover, so no double-counting). The tag is typed inline (datalist of existing
+  already cover, so no double-counting). Mapped rows take an optional ends date: a
+  cancelled sub keeps counting until it lapses, then drops out of the map and the
+  radar automatically ("ended" pill, row stays for history) - past months keep their
+  snapshots either way. The tag is typed inline (datalist of existing
   categories + groups); new category names are created on the fly - no categories card.
   ③ goals: click a goal to see and log its contributions inline.
   ④ investments: allocation-only earmarks as % of net (or gross) income -> RM/mo,

@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS expense (
     cadence TEXT NOT NULL DEFAULT 'monthly',
     is_estimate INTEGER NOT NULL DEFAULT 0,
     renews_on TEXT,
+    ends_on TEXT,
     notes TEXT
 );
 CREATE TABLE IF NOT EXISTS goal (
@@ -154,7 +155,8 @@ def _migrate(con):
     """Bring pre-existing DBs up to the current schema (fresh ones skip through)."""
     for stmt in ("ALTER TABLE goal ADD COLUMN yearly INTEGER NOT NULL DEFAULT 0",
                  "ALTER TABLE tracker ADD COLUMN grp TEXT",
-                 "ALTER TABLE tracker ADD COLUMN expires_on TEXT"):
+                 "ALTER TABLE tracker ADD COLUMN expires_on TEXT",
+                 "ALTER TABLE expense ADD COLUMN ends_on TEXT"):
         try:
             con.execute(stmt)
         except sqlite3.OperationalError:
@@ -353,11 +355,15 @@ def money_state(con):
         items = []
         for e in con.execute("SELECT * FROM expense WHERE category_id = ? ORDER BY id", (c["id"],)):
             e = dict(e)
-            e["monthly_eq"] = round(monthly_eq(e["amount"], e["cadence"]), 2)
-            if e["renews_on"]:
+            # ends_on: a cancelled sub stops counting (and rolling) the day it
+            # lapses, but the row stays for history until the user deletes it
+            e["ended"] = bool(e.get("ends_on")) and e["ends_on"] < date.today().isoformat()
+            e["monthly_eq"] = 0.0 if e["ended"] else round(monthly_eq(e["amount"], e["cadence"]), 2)
+            if e["renews_on"] and not e["ended"]:
                 roll = next_roll(e["renews_on"], e["cadence"])
-                e["next_roll"] = roll.isoformat()
-                e["days_to_roll"] = (roll - date.today()).days
+                if not e.get("ends_on") or roll.isoformat() <= e["ends_on"]:
+                    e["next_roll"] = roll.isoformat()
+                    e["days_to_roll"] = (roll - date.today()).days
             items.append(e)
         total = sum(i["monthly_eq"] for i in items)
         mapped += total
@@ -1081,7 +1087,7 @@ ENTITIES = {
     "income":       (["name", "gross_monthly"], ["name", "gross_monthly"]),
     "deduction":    (["income_id", "name", "amount_monthly"], ["income_id", "name", "amount_monthly"]),
     "category":     (["name", "sort"], ["name"]),
-    "expense":      (["name", "category_id", "amount", "cadence", "is_estimate", "renews_on", "notes"],
+    "expense":      (["name", "category_id", "amount", "cadence", "is_estimate", "renews_on", "ends_on", "notes"],
                      ["name", "category_id", "amount"]),
     "goal":         (["name", "target_amount", "deadline", "yearly", "notes"], ["name", "target_amount", "deadline"]),
     "contribution": (["goal_id", "on_date", "amount"], ["goal_id", "on_date", "amount"]),
@@ -1098,7 +1104,7 @@ ENTITIES = {
 NUMERIC = {"gross_monthly", "amount_monthly", "amount", "target_amount", "expected_cost", "cost", "balance", "pct"}
 INTEGER = {"income_id", "category_id", "goal_id", "sort", "is_estimate", "tracker_id", "interval_months", "yearly",
            "of_gross", "investment_id"}
-DATES = {"renews_on", "deadline", "on_date", "expires_on"}
+DATES = {"renews_on", "deadline", "on_date", "expires_on", "ends_on"}
 
 
 def clean(entity, data, creating):

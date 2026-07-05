@@ -18,6 +18,7 @@ const ICON = {
   chev: '<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg>',
   pen: '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.3 2.4a1.6 1.6 0 0 1 2.3 2.3L6.1 12.2l-3.3.9.9-3.3z"/></svg>',
   x: '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+  plus: '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>',
 };
 
 const LOGO = '<svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#3ecf8e"/><stop offset="1" stop-color="#4f7cf0"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#lg)"/><rect x="7" y="17" width="4.5" height="8" rx="2" fill="#fff" opacity=".8"/><rect x="13.75" y="12" width="4.5" height="13" rx="2" fill="#fff" opacity=".9"/><rect x="20.5" y="7" width="4.5" height="18" rx="2" fill="#fff"/></svg>';
