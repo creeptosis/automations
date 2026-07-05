@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget · manage</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #111418; color: #e6e6e6; margin: 0; padding: 20px; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  header { display: flex; align-items: baseline; margin-bottom: 12px; }
+  h1 { font-size: 1.2em; margin: 0; }
+  a.nav { margin-left: auto; color: #4da3ff; text-decoration: none; font-size: 0.9em; }
+  h2 { font-size: 0.8em; color: #9aa4b0; font-weight: 600; letter-spacing: 0.08em; margin: 18px 0 8px; }
+  .card { background: #1a1f26; border: 1px solid #2c333d; border-radius: 10px; padding: 6px 16px 10px; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 7px 10px; border-top: 1px solid #262d36; font-size: 0.88em; }
+  tr:first-child td { border-top: none; }
+  .n { text-align: right; white-space: nowrap; }
+  .grey { color: #9aa4b0; }
+  .act { text-align: right; white-space: nowrap; width: 60px; }
+  .act a { color: #9aa4b0; cursor: pointer; padding: 0 4px; text-decoration: none; }
+  .act a:hover { color: #e6e6e6; }
+  .empty { color: #5b6572; font-size: 0.85em; padding: 8px 10px; }
+  form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 10px 0 4px; border-top: 1px solid #262d36; margin-top: 2px; }
+  input, select, button { background: #1e242c; color: #e6e6e6; border: 1px solid #2c333d; border-radius: 6px; padding: 6px 8px; font-size: 0.85em; font-family: inherit; }
+  input::placeholder { color: #5b6572; }
+  input[type=number] { width: 96px; }
+  input[type=date] { width: 130px; }
+  button { background: #2b3a4d; border-color: #3d5878; cursor: pointer; }
+  .cancel { color: #9aa4b0; font-size: 0.82em; cursor: pointer; display: none; }
+  form[data-edit] .cancel { display: inline; }
+  label.chk { display: flex; gap: 4px; align-items: center; font-size: 0.82em; color: #9aa4b0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Budget · manage</h1><a class="nav" href="/">&larr; budget</a><a class="nav" style="margin-left:14px" href="/subs">subs</a><a class="nav" style="margin-left:14px" href="/life">life</a><a class="nav" style="margin-left:14px" href="/history">history</a><a class="nav" style="margin-left:14px" href="/reconcile">reconcile</a></header>
+
+  <h2>INCOME</h2>
+  <div class="card">
+    <table id="t-income"></table>
+    <form id="f-income">
+      <input name="name" placeholder="name" required>
+      <input name="gross_monthly" type="number" step="0.01" min="0" placeholder="gross RM/mo" required>
+      <button>add</button><a class="cancel">cancel</a>
+    </form>
+  </div>
+
+  <h2>DEDUCTIONS (gross &rarr; net)</h2>
+  <div class="card">
+    <table id="t-deduction"></table>
+    <form id="f-deduction">
+      <select name="income_id" required></select>
+      <input name="name" placeholder="name (EPF 11%, SOCSO, PCB…)" required style="width:220px">
+      <input name="amount_monthly" type="number" step="0.01" min="0" placeholder="RM/mo" required>
+      <button>add</button><a class="cancel">cancel</a>
+    </form>
+  </div>
+
+  <h2>EXPENSES (exact recurring + ≈ lump estimates)</h2>
+  <div class="card">
+    <table id="t-expense"></table>
+    <form id="f-expense">
+      <input name="name" placeholder="name" required style="width:160px">
+      <select name="category_id" required></select>
+      <input name="amount" type="number" step="0.01" min="0" placeholder="RM" required>
+      <select name="cadence">
+        <option>monthly</option><option>quarterly</option>
+        <option>half-yearly</option><option>yearly</option>
+      </select>
+      <label class="chk"><input type="checkbox" name="is_estimate">&asymp; estimate</label>
+      <input name="renews_on" type="date" title="renews on (optional)">
+      <input name="notes" placeholder="notes" style="flex:1;min-width:120px">
+      <button>add</button><a class="cancel">cancel</a>
+    </form>
+  </div>
+
+  <h2>GOALS</h2>
+  <div class="card">
+    <table id="t-goal"></table>
+    <form id="f-goal">
+      <input name="name" placeholder="name" required style="width:200px">
+      <input name="target_amount" type="number" step="0.01" min="0" placeholder="target RM" required>
+      <input name="deadline" type="date" required>
+      <input name="notes" placeholder="notes" style="flex:1;min-width:120px">
+      <button>add</button><a class="cancel">cancel</a>
+    </form>
+  </div>
+
+  <h2>CONTRIBUTIONS (money moved into a goal)</h2>
+  <div class="card">
+    <table id="t-contribution"></table>
+    <form id="f-contribution">
+      <select name="goal_id" required></select>
+      <input name="on_date" type="date" required>
+      <input name="amount" type="number" step="0.01" min="0" placeholder="RM" required>
+      <button>add</button><a class="cancel">cancel</a>
+    </form>
+  </div>
+
+  <h2>TRACKERS (life admin &mdash; log entries on the <a href="/life" style="color:#4da3ff;text-decoration:none">life</a> page)</h2>
+  <div class="card">
+    <table id="t-tracker"></table>
+    <form id="f-tracker">
+      <input name="name" placeholder="name" required style="width:160px">
+      <input name="interval_months" type="number" min="1" step="1" placeholder="every N months">
+      <input name="expected_cost" type="number" step="0.01" min="0" placeholder="expected RM">
+      <input name="notes" placeholder="notes" style="flex:1;min-width:120px">
+      <button>add</button><a class="cancel">cancel</a>
+    </form>
+  </div>
+
+  <h2>CATEGORIES</h2>
+  <div class="card">
+    <table id="t-category"></table>
+    <form id="f-category">
+      <input name="name" placeholder="name" required>
+      <button>add</button><a class="cancel">cancel</a>
+    </form>
+  </div>
+</div>
+
+<script>
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = v => "RM " + (Math.abs(v % 1) > 0.004
+  ? v.toLocaleString("en-MY", {minimumFractionDigits: 2, maximumFractionDigits: 2})
+  : v.toLocaleString("en-MY", {maximumFractionDigits: 0}));
+
+let S = null;          // last /api/summary payload
+let ROWS = {};         // entity -> id -> row object (for edit)
+
+async function api(method, path, body) {
+  const r = await fetch(path, {
+    method, headers: {"Content-Type": "application/json"},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await r.json();
+  if (!r.ok) { alert(j.error || "error"); throw new Error(j.error); }
+  return j;
+}
+
+const act = (entity, id) =>
+  `<td class="act"><a onclick="edit('${entity}',${id})" title="edit">&#9998;</a>` +
+  `<a onclick="del('${entity}',${id})" title="delete">&#10005;</a></td>`;
+
+function table(id, rows, emptyMsg) {
+  document.getElementById(id).innerHTML =
+    rows.join("") || `<tr><td class="empty">${emptyMsg}</td></tr>`;
+}
+
+function fillSelect(sel, items, label) {
+  sel.innerHTML = items.map(i => `<option value="${i.id}">${esc(label(i))}</option>`).join("");
+}
+
+function render() {
+  ROWS = {income: {}, deduction: {}, expense: {}, goal: {}, contribution: {}, category: {}, tracker: {}};
+
+  table("t-income", S.incomes.map(i => {
+    ROWS.income[i.id] = i;
+    return `<tr><td>${esc(i.name)}</td><td class="n">${fmt(i.gross_monthly)}/mo</td>${act("income", i.id)}</tr>`;
+  }), "no income yet — add your salary below");
+
+  const incName = Object.fromEntries(S.incomes.map(i => [i.id, i.name]));
+  table("t-deduction", S.deductions.map(d => {
+    ROWS.deduction[d.id] = d;
+    return `<tr><td>${esc(d.name)} <span class="grey">(${esc(incName[d.income_id] || "?")})</span></td>` +
+           `<td class="n">− ${fmt(d.amount_monthly)}/mo</td>${act("deduction", d.id)}</tr>`;
+  }), "none — EPF, SOCSO, EIS, PCB go here");
+
+  const exp = [];
+  for (const c of S.categories)
+    for (const e of c.items) {
+      ROWS.expense[e.id] = e;
+      exp.push(`<tr><td>${esc(e.name)}${e.is_estimate ? " &asymp;" : ""}</td>` +
+               `<td class="grey">${esc(c.name)}</td>` +
+               `<td class="n">${fmt(e.amount)} <span class="grey">${e.cadence}</span></td>` +
+               `<td class="n grey">${fmt(e.monthly_eq)}/mo</td>` +
+               `<td class="grey">${e.renews_on ? "renews " + e.renews_on : ""}</td>${act("expense", e.id)}</tr>`);
+    }
+  table("t-expense", exp, "nothing mapped yet");
+
+  table("t-goal", S.goals.map(g => {
+    ROWS.goal[g.id] = g;
+    return `<tr><td>${esc(g.name)}</td><td class="n">${fmt(g.target_amount)}</td>` +
+           `<td class="grey">by ${g.deadline}</td><td class="grey">${esc(g.notes)}</td>${act("goal", g.id)}</tr>`;
+  }), "no goals yet");
+
+  const contribs = [];
+  for (const g of S.goals)
+    for (const c of g.contributions) {
+      ROWS.contribution[c.id] = c;
+      contribs.push(`<tr><td>${c.on_date}</td><td class="grey">${esc(g.name)}</td>` +
+                    `<td class="n">${fmt(c.amount)}</td>${act("contribution", c.id)}</tr>`);
+    }
+  table("t-contribution", contribs, "none logged yet");
+
+  table("t-tracker", S.trackers.map(t => {
+    ROWS.tracker[t.id] = t;
+    return `<tr><td>${esc(t.name)}</td>` +
+           `<td class="grey">${t.interval_months ? "every " + t.interval_months + " mo" : "log only"}</td>` +
+           `<td class="n grey">${t.expected_cost != null ? fmt(t.expected_cost) : ""}</td>` +
+           `<td class="grey">${esc(t.notes)}</td>` +
+           `<td class="n grey">${t.entries.length} logged</td>${act("tracker", t.id)}</tr>`;
+  }), "none");
+
+  table("t-category", S.categories.map(c => {
+    ROWS.category[c.id] = c;
+    return `<tr><td>${esc(c.name)}</td><td class="n grey">${c.items.length} item${c.items.length === 1 ? "" : "s"}</td>` +
+           `${act("category", c.id)}</tr>`;
+  }), "none");
+
+  fillSelect(document.querySelector("#f-deduction [name=income_id]"), S.incomes, i => i.name);
+  fillSelect(document.querySelector("#f-expense [name=category_id]"), S.categories, c => c.name);
+  fillSelect(document.querySelector("#f-contribution [name=goal_id]"), S.goals, g => g.name);
+  const od = document.querySelector("#f-contribution [name=on_date]");
+  if (!od.value) od.value = S.as_of;
+}
+
+function readForm(f) {
+  const data = {};
+  for (const el of f.elements) {
+    if (!el.name) continue;
+    data[el.name] = el.type === "checkbox" ? (el.checked ? 1 : 0) : el.value;
+  }
+  return data;
+}
+
+function clearForm(f) {
+  f.reset();
+  delete f.dataset.edit;
+  f.querySelector("button").textContent = "add";
+}
+
+function edit(entity, id) {
+  const f = document.getElementById("f-" + entity);
+  const row = ROWS[entity][id];
+  for (const el of f.elements) {
+    if (!el.name || row[el.name] === undefined) continue;
+    if (el.type === "checkbox") el.checked = !!row[el.name];
+    else el.value = row[el.name] ?? "";
+  }
+  f.dataset.edit = id;
+  f.querySelector("button").textContent = "save";
+}
+
+async function del(entity, id) {
+  if (!confirm("delete?")) return;
+  await api("DELETE", `/api/${entity}/${id}`);
+  await load();
+}
+
+for (const f of document.querySelectorAll("form")) {
+  f.addEventListener("submit", async ev => {
+    ev.preventDefault();
+    const entity = f.id.slice(2);
+    if (f.dataset.edit) await api("PUT", `/api/${entity}/${f.dataset.edit}`, readForm(f));
+    else await api("POST", `/api/${entity}`, readForm(f));
+    clearForm(f);
+    await load();
+  });
+  f.querySelector(".cancel").addEventListener("click", () => clearForm(f));
+}
+
+async function load() {
+  S = await (await fetch("/api/summary")).json();
+  render();
+}
+load();
+</script>
+</body>
+</html>

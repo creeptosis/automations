@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget · history</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #111418; color: #e6e6e6; margin: 0; padding: 20px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  header { display: flex; align-items: baseline; margin-bottom: 4px; }
+  h1 { font-size: 1.2em; margin: 0; }
+  a.nav { color: #4da3ff; text-decoration: none; font-size: 0.9em; margin-left: 14px; }
+  a.nav.first { margin-left: auto; }
+  .sub { color: #9aa4b0; font-size: 0.85em; margin-bottom: 12px; }
+  .banner { border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.95em;
+            border: 1px solid #2c333d; background: #1a1f26; }
+  .banner b { color: #4da3ff; }
+  h2 { font-size: 0.8em; color: #9aa4b0; font-weight: 600; letter-spacing: 0.08em; margin: 18px 0 8px; }
+  .card { background: #1a1f26; border: 1px solid #2c333d; border-radius: 10px; padding: 6px 16px 10px; margin-bottom: 14px; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 8px 10px; border-top: 1px solid #262d36; font-size: 0.9em; }
+  tr:first-child td { border-top: none; }
+  th { color: #9aa4b0; text-align: left; font-weight: 600; font-size: 0.78em; padding: 8px 10px 4px; }
+  th.n { text-align: right; }
+  .n { text-align: right; white-space: nowrap; }
+  .grey { color: #9aa4b0; }
+  .dim { color: #5b6572; }
+  .pos { color: #4ade80; }
+  .neg { color: #f87171; }
+  .empty { color: #5b6572; font-size: 0.85em; padding: 8px 10px; }
+  .act { text-align: right; width: 30px; }
+  .act a { color: #5b6572; cursor: pointer; text-decoration: none; }
+  .act a:hover { color: #e6e6e6; }
+  tr.mon { cursor: pointer; }
+  tr.mcat td { border-top: none; padding: 0 10px 6px 26px; color: #9aa4b0; font-size: 0.82em; }
+  .barwrap { background: #12161b; border-radius: 4px; height: 5px; width: 90px; display: inline-block; }
+  .bar { background: #4da3ff; height: 5px; border-radius: 4px; display: block; }
+  .drift .line1 { font-size: 0.95em; padding: 8px 10px 0; }
+  .drift .line2 { color: #9aa4b0; font-size: 0.85em; padding: 4px 10px 0; }
+  .drift .line3 { font-size: 0.95em; font-weight: 600; padding: 6px 10px 10px; }
+  form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 10px 0 4px; border-top: 1px solid #262d36; }
+  input, button { background: #1e242c; color: #e6e6e6; border: 1px solid #2c333d; border-radius: 6px; padding: 6px 8px; font-size: 0.85em; font-family: inherit; }
+  input::placeholder { color: #5b6572; }
+  input[type=number] { width: 130px; }
+  input[type=date] { width: 130px; }
+  button { background: #2b3a4d; border-color: #3d5878; cursor: pointer; }
+  .note { color: #5b6572; font-size: 0.78em; margin-top: 10px; }
+  .note a { color: #4da3ff; cursor: pointer; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Budget · history</h1>
+    <a class="nav first" href="/">&larr; budget</a><a class="nav" href="/subs">subs</a><a class="nav" href="/life">life</a><a class="nav" href="/reconcile">reconcile</a><a class="nav" href="/manage">manage</a>
+  </header>
+  <div class="sub">monthly bank check-ins &rarr; drift vs plan · auto-closed month snapshots</div>
+  <div class="banner" id="banner">loading&hellip;</div>
+
+  <h2>DRIFT</h2>
+  <div class="card drift" id="drift"></div>
+
+  <h2>CHECK-INS (total bank balance, once a month)</h2>
+  <div class="card">
+    <table id="checkins"></table>
+    <form id="f-checkin">
+      <input type="date" name="on_date" required>
+      <input type="number" name="balance" step="0.01" placeholder="total balance RM" required>
+      <input name="note" placeholder="note (optional)" style="flex:1;min-width:120px">
+      <button>log</button>
+    </form>
+  </div>
+
+  <h2>MONTHS (plan as it stood)</h2>
+  <div class="card">
+    <table id="months"></table>
+    <div class="note">months close automatically on first use in a new month · <a id="snapnow">snapshot this month now</a></div>
+  </div>
+</div>
+<script>
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = v => "RM " + (Math.abs(v % 1) > 0.004
+  ? v.toLocaleString("en-MY", {minimumFractionDigits: 2, maximumFractionDigits: 2})
+  : v.toLocaleString("en-MY", {maximumFractionDigits: 0}));
+const sgn = v => (v >= 0 ? "+" : "−") + fmt(Math.abs(v));
+const pc = v => v == null ? "–" : v.toFixed(1) + "%";
+
+function drift(s) {
+  const el = document.getElementById("drift");
+  if (!s.drift) {
+    el.innerHTML = '<div class="empty">log two check-ins to see drift</div>';
+    return;
+  }
+  const d = s.drift;
+  const over = d.gap_monthly < 0;
+  const verdict = Math.abs(d.gap_monthly) < 100
+    ? `<span class="pos">on plan (gap ${sgn(d.gap_monthly)}/mo)</span>`
+    : over
+      ? `<span class="neg">~${fmt(-d.gap_monthly)}/mo unmapped spending</span>`
+      : `<span class="pos">~${fmt(d.gap_monthly)}/mo better than plan</span>`;
+  el.innerHTML =
+    `<div class="line1">${d.from} &rarr; ${d.to} <span class="grey">(${d.span_months} mo)</span></div>` +
+    `<div class="line2">bank moved ${sgn(d.actual_delta)} · plan predicted ${sgn(d.predicted_delta)}` +
+    ` <span class="dim">(surplus × span − ${fmt(d.contributions)} goal contributions)</span></div>` +
+    `<div class="line3">${verdict}</div>`;
+}
+
+function checkins(s) {
+  const rows = [];
+  const cs = s.checkins;
+  for (let i = 0; i < cs.length; i++) {
+    const delta = i + 1 < cs.length ? cs[i].balance - cs[i + 1].balance : null;
+    rows.push(`<tr><td>${cs[i].on_date}</td><td class="n">${fmt(cs[i].balance)}</td>` +
+      `<td class="n ${delta == null ? "" : delta >= 0 ? "pos" : "neg"}">${delta == null ? "" : sgn(delta)}</td>` +
+      `<td class="grey">${esc(cs[i].note)}</td>` +
+      `<td class="act"><a onclick="delCheckin(${cs[i].id})">&#10005;</a></td></tr>`);
+  }
+  document.getElementById("checkins").innerHTML =
+    rows.join("") || `<tr><td class="empty">none yet — log your first balance below</td></tr>`;
+  const f = document.getElementById("f-checkin");
+  if (!f.on_date.value) f.on_date.value = s.as_of;
+}
+
+function months(s) {
+  const rows = [];
+  if (s.snapshots.length)
+    rows.push(`<tr><th>month</th><th class="n">net</th><th class="n">mapped</th><th class="n">surplus</th><th class="n">saved</th><th></th></tr>`);
+  for (const m of s.snapshots) {
+    rows.push(`<tr class="mon" onclick="toggle('${m.month}')"><td>${m.month}</td>` +
+      `<td class="n">${fmt(m.net)}</td><td class="n grey">${fmt(m.mapped)}</td>` +
+      `<td class="n">${fmt(m.surplus)}</td><td class="n">${pc(m.savings_pct)}</td>` +
+      `<td><span class="barwrap"><span class="bar" style="width:${Math.max(0, Math.min(100, m.savings_pct || 0))}%"></span></span></td></tr>`);
+    for (const c of m.categories)
+      rows.push(`<tr class="mcat m${m.month}" hidden><td colspan="6">${esc(c.name)} · ${fmt(c.monthly)}/mo</td></tr>`);
+  }
+  document.getElementById("months").innerHTML =
+    rows.join("") || `<tr><td class="empty">no closed months yet — the first snapshot lands automatically next month</td></tr>`;
+}
+
+function toggle(m) {
+  document.querySelectorAll(".m" + CSS.escape(m)).forEach(r => r.hidden = !r.hidden);
+}
+
+async function delCheckin(id) {
+  if (!confirm("delete this check-in?")) return;
+  await fetch("/api/checkin/" + id, {method: "DELETE"});
+  await load();
+}
+
+document.getElementById("f-checkin").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const f = ev.target, data = {};
+  for (const el of f.elements) if (el.name) data[el.name] = el.value;
+  const r = await fetch("/api/checkin", {method: "POST",
+    headers: {"Content-Type": "application/json"}, body: JSON.stringify(data)});
+  if (!r.ok) alert((await r.json()).error || "error");
+  f.reset();
+  await load();
+});
+
+document.getElementById("snapnow").addEventListener("click", async () => {
+  const r = await fetch("/api/snapshot/now", {method: "POST"});
+  if (!r.ok) alert((await r.json()).error || "error");
+  await load();
+});
+
+function banner(s) {
+  const el = document.getElementById("banner");
+  if (!s.checkins.length) {
+    el.innerHTML = "the habit: one balance check-in a month keeps the surplus honest";
+    return;
+  }
+  const c = s.checkins[0];
+  el.innerHTML = `last check-in <b>${fmt(c.balance)}</b> on ${c.on_date}` +
+    (s.snapshots.length ? ` · ${s.snapshots.length} month${s.snapshots.length === 1 ? "" : "s"} closed` : "");
+}
+
+async function load() {
+  const s = await (await fetch("/api/summary")).json();
+  banner(s); drift(s); checkins(s); months(s);
+}
+load();
+</script>
+</body>
+</html>

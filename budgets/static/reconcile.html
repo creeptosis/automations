@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget · reconcile</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #111418; color: #e6e6e6; margin: 0; padding: 20px; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  header { display: flex; align-items: baseline; margin-bottom: 4px; }
+  h1 { font-size: 1.2em; margin: 0; }
+  a.nav { color: #4da3ff; text-decoration: none; font-size: 0.9em; margin-left: 14px; }
+  a.nav.first { margin-left: auto; }
+  .sub { color: #9aa4b0; font-size: 0.85em; margin-bottom: 12px; }
+  h2 { font-size: 0.8em; color: #9aa4b0; font-weight: 600; letter-spacing: 0.08em; margin: 18px 0 8px; }
+  h2 select { margin-left: 8px; }
+  .card { background: #1a1f26; border: 1px solid #2c333d; border-radius: 10px; padding: 6px 16px 10px; margin-bottom: 14px; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 7px 10px; border-top: 1px solid #262d36; font-size: 0.88em; }
+  tr:first-child td { border-top: none; }
+  th { color: #9aa4b0; text-align: left; font-weight: 600; font-size: 0.78em; padding: 8px 10px 4px; }
+  th.n { text-align: right; }
+  .n { text-align: right; white-space: nowrap; }
+  .grey { color: #9aa4b0; }
+  .dim { color: #5b6572; }
+  .pos { color: #4ade80; }
+  .neg { color: #f87171; }
+  .amber { color: #fbbf24; }
+  .empty { color: #5b6572; font-size: 0.85em; padding: 8px 10px; }
+  .act { text-align: right; white-space: nowrap; width: 40px; }
+  .act a, a.small { color: #5b6572; cursor: pointer; text-decoration: none; padding: 0 4px; font-size: 0.9em; }
+  .act a:hover, a.small:hover { color: #e6e6e6; }
+  form, .inline { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 10px 0 4px; }
+  form.bordered { border-top: 1px solid #262d36; }
+  input, select, button { background: #1e242c; color: #e6e6e6; border: 1px solid #2c333d; border-radius: 6px; padding: 6px 8px; font-size: 0.85em; font-family: inherit; }
+  input::placeholder { color: #5b6572; }
+  button { background: #2b3a4d; border-color: #3d5878; cursor: pointer; }
+  select.txncat { padding: 3px 4px; font-size: 0.8em; }
+  #result { color: #9aa4b0; font-size: 0.85em; padding: 6px 0 2px; white-space: pre-line; }
+  .note { color: #5b6572; font-size: 0.78em; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Budget · reconcile</h1>
+    <a class="nav first" href="/">&larr; budget</a><a class="nav" href="/subs">subs</a><a class="nav" href="/life">life</a><a class="nav" href="/history">history</a><a class="nav" href="/manage">manage</a>
+  </header>
+  <div class="sub">upload a statement CSV &rarr; keyword rules sort it &rarr; actual vs plan per category · optional, never required</div>
+
+  <h2>UPLOAD</h2>
+  <div class="card">
+    <form id="f-upload">
+      <input type="file" id="file" accept=".csv,.txt" required>
+      <input id="source" placeholder="source (maybank, tng…)" list="sources" style="width:170px">
+      <datalist id="sources"></datalist>
+      <button>upload</button>
+    </form>
+    <div id="result"></div>
+    <div class="note">CSV with date + amount (or debit/credit) columns; duplicates are skipped
+      automatically. PDF statements: drop a sample in <code>budgets/samples/</code> and the exact
+      parser gets built next.</div>
+  </div>
+
+  <h2>ACTUAL vs PLAN <select id="month" onchange="load(this.value)"></select></h2>
+  <div class="card"><table id="actuals"></table></div>
+
+  <h2>UNMATCHED SPEND (teach a rule, it applies forever)</h2>
+  <div class="card"><table id="unmatched"></table></div>
+
+  <h2>TRANSACTIONS <a class="small" id="txntoggle">show</a></h2>
+  <div class="card" id="txncard" hidden><table id="txns"></table></div>
+
+  <h2>RULES</h2>
+  <div class="card">
+    <table id="rules"></table>
+    <form id="f-rule" class="bordered">
+      <input id="r-keyword" placeholder="keyword (matches description)" required style="width:220px">
+      <select id="r-cat"></select>
+      <button>add rule</button>
+    </form>
+  </div>
+
+  <h2>STATEMENTS</h2>
+  <div class="card"><table id="statements"></table></div>
+</div>
+<script>
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = v => "RM " + (Math.abs(v % 1) > 0.004
+  ? v.toLocaleString("en-MY", {minimumFractionDigits: 2, maximumFractionDigits: 2})
+  : v.toLocaleString("en-MY", {maximumFractionDigits: 0}));
+let R = null;
+
+async function api(method, path, body) {
+  const r = await fetch(path, {method, headers: {"Content-Type": "application/json"},
+                               body: body ? JSON.stringify(body) : undefined});
+  const j = await r.json();
+  if (!r.ok) { alert(j.error || "error"); throw new Error(j.error); }
+  return j;
+}
+
+const catOpts = sel =>
+  '<option value="">—</option>' +
+  R.categories.map(c => `<option value="${c.id}"${c.id === sel ? " selected" : ""}>${esc(c.name)}</option>`).join("");
+
+function render() {
+  document.getElementById("month").innerHTML =
+    R.months.map(m => `<option${m === R.month ? " selected" : ""}>${m}</option>`).join("");
+  document.getElementById("sources").innerHTML =
+    [...new Set(R.statements.map(s => s.source))].map(s => `<option>${esc(s)}</option>`).join("");
+
+  const act = (R.actuals || []).map(a => {
+    const d = a.plan != null ? a.actual - a.plan : null;
+    const dcell = d == null ? '<span class="dim">no plan</span>'
+      : `<span class="${d > 0 ? "neg" : "pos"}">${d >= 0 ? "+" : "−"}${fmt(Math.abs(d))}</span>`;
+    return `<tr><td>${esc(a.category)}</td><td class="n">${fmt(a.actual)}</td>` +
+           `<td class="n grey">${a.plan != null ? fmt(a.plan) : "–"}</td><td class="n">${dcell}</td></tr>`;
+  });
+  const un = R.unmatched || [];
+  if (un.length) {
+    const tot = un.reduce((t, u) => t + u.total, 0);
+    act.unshift(`<tr><td class="amber">unmatched</td><td class="n amber">${fmt(tot)}</td><td class="n grey">–</td><td></td></tr>`);
+  }
+  if (R.month)
+    act.push(`<tr><td class="grey">month total</td><td class="n">${fmt(R.outflow)} out</td>` +
+             `<td class="n grey" colspan="2">${fmt(R.inflow)} in</td></tr>`);
+  document.getElementById("actuals").innerHTML =
+    (R.actuals || []).length || un.length
+      ? `<tr><th>category</th><th class="n">actual</th><th class="n">plan</th><th class="n">&Delta;</th></tr>` + act.join("")
+      : `<tr><td class="empty">no statement data for this month yet</td></tr>`;
+
+  document.getElementById("unmatched").innerHTML = un.length
+    ? un.map((u, i) =>
+        `<tr><td>${esc(u.description)} <span class="grey">×${u.count} · ${fmt(u.total)}</span></td>` +
+        `<td class="n"><span class="inline" style="justify-content:flex-end;padding:0">` +
+        `<input id="uk${i}" value="${esc(u.description.split(" ")[0])}" style="width:140px">` +
+        `<select id="uc${i}">${catOpts(null)}</select>` +
+        `<button onclick="teach(${i})">rule</button></span></td></tr>`).join("")
+    : `<tr><td class="empty">nothing unmatched — every ringgit has a category</td></tr>`;
+
+  document.getElementById("txns").innerHTML = (R.txns || []).length
+    ? R.txns.map(t =>
+        `<tr><td class="grey">${t.on_date}</td><td>${esc(t.description)}</td>` +
+        `<td class="n ${t.amount < 0 ? "" : "pos"}">${fmt(t.amount)}</td>` +
+        `<td><select class="txncat" onchange="setCat(${t.id}, this.value)">${catOpts(t.category_id)}</select></td>` +
+        `<td class="act"><a onclick="del('txn',${t.id})">&#10005;</a></td></tr>`).join("")
+    : `<tr><td class="empty">none this month</td></tr>`;
+
+  document.getElementById("rules").innerHTML = R.rules.length
+    ? R.rules.map(r =>
+        `<tr><td>${esc(r.keyword)}</td><td class="grey">&rarr; ${esc(r.category)}</td>` +
+        `<td class="act"><a onclick="del('rule',${r.id})">&#10005;</a></td></tr>`).join("")
+    : `<tr><td class="empty">no rules yet — teach them from unmatched spend above</td></tr>`;
+
+  document.getElementById("r-cat").innerHTML = catOpts(null);
+
+  document.getElementById("statements").innerHTML = R.statements.length
+    ? R.statements.map(s =>
+        `<tr><td>${esc(s.source)}</td><td class="grey">${esc(s.filename)}</td>` +
+        `<td class="grey">${s.uploaded_on}</td><td class="n grey">${s.txn_count} txns</td>` +
+        `<td class="act"><a title="flip +/− if spending imported as positive" onclick="flip(${s.id})">&plusmn;</a>` +
+        `<a onclick="del('statement',${s.id})">&#10005;</a></td></tr>`).join("")
+    : `<tr><td class="empty">nothing uploaded yet</td></tr>`;
+}
+
+async function teach(i) {
+  const kw = document.getElementById("uk" + i).value.trim();
+  const cat = document.getElementById("uc" + i).value;
+  if (!kw || !cat) { alert("keyword and category needed"); return; }
+  await api("POST", "/api/rule", {keyword: kw, category_id: cat});
+  await api("POST", "/api/rules/apply");
+  await load(R.month);
+}
+
+async function setCat(id, v) {
+  await api("PUT", "/api/txn/" + id, {category_id: v});
+  await load(R.month);
+}
+
+async function del(entity, id) {
+  if (!confirm("delete?")) return;
+  await api("DELETE", `/api/${entity}/${id}`);
+  await load(R.month);
+}
+
+async function flip(id) {
+  await api("POST", `/api/statement/${id}/flip`);
+  await load(R.month);
+}
+
+document.getElementById("f-rule").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const kw = document.getElementById("r-keyword").value.trim();
+  const cat = document.getElementById("r-cat").value;
+  if (!kw || !cat) return;
+  await api("POST", "/api/rule", {keyword: kw, category_id: cat});
+  await api("POST", "/api/rules/apply");
+  ev.target.reset();
+  await load(R.month);
+});
+
+document.getElementById("f-upload").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const fd = new FormData();
+  const file = document.getElementById("file").files[0];
+  if (!file) return;
+  fd.append("file", file);
+  fd.append("source", document.getElementById("source").value);
+  const r = await fetch("/api/statement/upload", {method: "POST", body: fd});
+  const j = await r.json();
+  document.getElementById("result").textContent = r.ok
+    ? `${j.imported} imported · ${j.duplicates} duplicates skipped · ${j.rows_skipped} unparseable` +
+      ` · ${j.auto_categorised} auto-categorised · ${j.unmatched_spend} spend txns need a category`
+    : "error: " + j.error;
+  ev.target.reset();
+  if (r.ok) await load();
+});
+
+document.getElementById("txntoggle").addEventListener("click", ev => {
+  const c = document.getElementById("txncard");
+  c.hidden = !c.hidden;
+  ev.target.textContent = c.hidden ? "show" : "hide";
+});
+
+async function load(month) {
+  R = await (await fetch("/api/reconcile" + (month ? "?month=" + month : ""))).json();
+  render();
+}
+load(new URLSearchParams(location.search).get("month"));
+</script>
+</body>
+</html>
