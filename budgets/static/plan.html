@@ -179,7 +179,11 @@ $("inc-add").addEventListener("click", () => {
   f.elements.name.focus();
 });
 
-// ---- ② spending: expenses + trackers as one list; the repeat rule decides which
+// ---- ② spending: expenses + trackers as one list; the repeat rule decides which.
+// A mapped row expands (click) into its breakdown: named fixed pieces inside the
+// lump + the unaccounted rest. Informational only — the map still counts the lump.
+
+const OPENSUB = new Set();   // expense ids whose breakdown stays open across reloads
 
 function renderSpend() {
   const list = [];
@@ -188,23 +192,29 @@ function renderSpend() {
       ROWS.expense[e.id] = {...e, _cat: c.name};
       list.push({kind: "expense", id: e.id, name: e.name, est: e.is_estimate, tag: c.name,
                  rm: e.amount, rep: e.cadence, mo: e.monthly_eq,
-                 ends: e.ends_on, ended: e.ended,
+                 ends: e.ends_on, ended: e.ended, notes: e.notes, subs: e.subitems,
                  next: e.next_roll, days: e.days_to_roll});
     }
   for (const t of S.trackers) {
     ROWS.tracker[t.id] = t;
-    list.push({kind: "tracker", id: t.id, name: t.name, tag: t.grp || "",
+    list.push({kind: "tracker", id: t.id, name: t.name, tag: t.grp || "", notes: t.notes,
                rm: t.expected_cost,
                rep: t.expires_on ? "fixed expiry" : t.interval_months ? everyTxt(t.interval_months) : "log only",
                mo: null, next: t.next_due, days: t.days_to_due});
   }
   list.sort((a, b) => a.tag.localeCompare(b.tag) || a.name.localeCompare(b.name));
 
-  const rows = list.map(r => {
+  const rows = [];
+  if (list.length)
+    rows.push(`<tr><th>name</th><th>tag</th><th class="n">RM</th><th>repeats</th><th class="n">/mo</th><th>next</th><th></th></tr>`);
+  for (const r of list) {
     const pill = r.next == null ? ""
       : r.days < 0 ? ` <span class="pill bad">${-r.days}d late</span>`
       : ` <span class="pill${r.days <= 14 ? " warn" : ""}">in ${r.days}d</span>`;
-    return `<tr id="r-${r.kind}-${r.id}"><td>${esc(r.name)}${r.est ? ' <span class="pill" title="estimate">≈</span>' : ""}</td>` +
+    const exp = r.kind === "expense";
+    rows.push(`<tr id="r-${r.kind}-${r.id}"${exp ? ` class="rowlink" onclick="toggleSpend(${r.id}, this)"` : ""}>` +
+      `<td>${exp ? `<span class="chev">${ICON.chev}</span>` : ""}${esc(r.name)}${r.est ? ' <span class="pill" title="estimate">≈</span>' : ""}` +
+      `${r.notes ? ` <span class="dim">· ${esc(r.notes)}</span>` : ""}</td>` +
       `<td class="mut">${esc(r.tag)}</td>` +
       `<td class="n">${r.rm != null ? fmt(r.rm) : ""}</td>` +
       `<td class="mut">${r.rep}${r.ends && !r.ended ? ` <span class="pill">until ${r.ends}</span>` : ""}</td>` +
@@ -212,16 +222,71 @@ function renderSpend() {
                           : r.mo != null ? fmt(r.mo)
                           : '<span class="dim" title="not counted — the lump estimates cover it">–</span>'}</td>` +
       `<td class="datecell mut">${r.ended ? `<span class="dim">ended ${r.ends}</span>` : r.next ? r.next + pill : ""}</td>` +
-      `<td class="act"><a class="iconbtn" onclick="editSpend('${r.kind}',${r.id})" title="edit">${ICON.pen}</a>` +
-      `<a class="iconbtn" onclick="del('${r.kind}',${r.id})" title="delete">${ICON.x}</a></td></tr>`;
-  });
-  if (rows.length)
-    rows.unshift(`<tr><th>name</th><th>tag</th><th class="n">RM</th><th>repeats</th><th class="n">/mo</th><th>next</th><th></th></tr>`);
+      `<td class="act"><a class="iconbtn" onclick="event.stopPropagation();editSpend('${r.kind}',${r.id})" title="edit">${ICON.pen}</a>` +
+      `<a class="iconbtn" onclick="event.stopPropagation();del('${r.kind}',${r.id})" title="delete">${ICON.x}</a></td></tr>`);
+    if (!exp) continue;
+    let sum = 0;
+    for (const s of r.subs) {
+      ROWS.subitem[s.id] = s;
+      sum += s.amount;
+      rows.push(`<tr class="item sx${r.id}" hidden><td class="subpad mut">${esc(s.name)}` +
+        `${s.note ? ` <span class="dim">· ${esc(s.note)}</span>` : ""}</td>` +
+        `<td></td><td class="n mut">${fmt(s.amount)}</td><td colspan="3"></td>` +
+        `<td class="act"><a class="iconbtn" onclick="subForm(${r.id},${s.id})" title="edit">${ICON.pen}</a>` +
+        `<a class="iconbtn" onclick="del('subitem',${s.id})" title="delete">${ICON.x}</a></td></tr>`);
+    }
+    if (r.subs.length) {
+      const left = Math.round((r.rm - sum) * 100) / 100;
+      rows.push(`<tr class="item total sx${r.id}" hidden><td class="subpad">${left < 0 ? "over the lump" : "unaccounted"}</td>` +
+        `<td></td><td class="n${left < 0 ? " neg" : ""}">${fmt(left)}</td><td colspan="4"></td></tr>`);
+    }
+    rows.push(`<tr class="item logrow sx${r.id}" hidden><td colspan="7" class="subpad">` +
+      `<form class="cardform" style="padding:2px 0 8px;border:none" id="f-sub-${r.id}" onsubmit="return subSave(event,${r.id})">` +
+      `<input name="name" placeholder="fixed piece (TIME internet…)" required style="width:200px">` +
+      `<input name="amount" type="number" step="0.01" min="0" placeholder="RM" required>` +
+      `<input name="note" placeholder="note (2nd of month…)" class="grow">` +
+      `<button class="sm">add</button></form></td></tr>`);
+  }
   table("t-spend", rows, "nothing yet — rent, Netflix, road tax, car service, daily ≈ lump all go here");
+  for (const id of [...OPENSUB]) {
+    const tr = $("r-expense-" + id);
+    if (!tr) { OPENSUB.delete(id); continue; }
+    tr.classList.add("open");
+    document.querySelectorAll(".sx" + id).forEach(x => x.hidden = false);
+  }
 
   const tags = new Set(S.categories.map(c => c.name));
   for (const t of S.trackers) if (t.grp) tags.add(t.grp);
   $("taglist").innerHTML = [...tags].sort().map(t => `<option value="${esc(t)}">`).join("");
+}
+
+function toggleSpend(id, row) {
+  const open = row.classList.toggle("open");
+  if (open) OPENSUB.add(id); else OPENSUB.delete(id);
+  document.querySelectorAll(".sx" + id).forEach(x => x.hidden = !open);
+}
+
+function subForm(expId, subId) {
+  const f = $("f-sub-" + expId), s = ROWS.subitem[subId];
+  f.elements.name.value = s.name;
+  f.elements.amount.value = s.amount;
+  f.elements.note.value = s.note || "";
+  f.dataset.edit = subId;
+  f.querySelector("button").textContent = "save";
+  f.elements.name.focus();
+}
+
+async function subSave(ev, expId) {
+  ev.preventDefault();
+  const el = ev.target.elements;
+  const data = {expense_id: expId, name: el.name.value.trim(),
+                amount: el.amount.value, note: el.note.value};
+  try {
+    if (ev.target.dataset.edit) await api("PUT", "/api/subitem/" + ev.target.dataset.edit, data);
+    else await api("POST", "/api/subitem", data);
+    await load();
+  } catch {}
+  return false;
 }
 
 function spendForm() {
@@ -297,6 +362,8 @@ $("f-spend").addEventListener("submit", async ev => {
       } else {
         if (oldKind === "tracker" && ROWS.tracker[id].entries.length &&
             !confirm("this becomes a mapped expense — its log history goes too. continue?")) return;
+        if (oldKind === "expense" && ROWS.expense[id].subitems.length &&
+            !confirm("this leaves the map — its breakdown goes too. continue?")) return;
         await api("POST", `/api/${kind}`, payload);
         await api("DELETE", `/api/${oldKind}/${id}`);
       }
@@ -638,7 +705,7 @@ for (const name of ["income", "goal", "investment"]) {
 
 async function load() {
   S = await getJSON("/api/summary");
-  ROWS = {income: {}, deduction: {}, expense: {}, tracker: {}, goal: {}, contribution: {}, investment: {}};
+  ROWS = {income: {}, deduction: {}, expense: {}, subitem: {}, tracker: {}, goal: {}, contribution: {}, investment: {}};
   renderIncome();
   renderSpend();
   renderGoals();

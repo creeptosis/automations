@@ -35,6 +35,9 @@ Four tabs, one per question (restructured 2026-07-05; the old /manage, /subs, /l
   radar automatically ("ended" pill, row stays for history) - past months keep their
   snapshots either way. The tag is typed inline (datalist of existing
   categories + groups); new category names are created on the fly - no categories card.
+  Notes show dim after the name. A mapped row expands (click) into its breakdown:
+  named fixed pieces inside the lump (TIME internet 145.20, Cuckoo 60 "2nd of month")
+  plus the unaccounted rest - informational only, the map still counts the lump.
   ③ goals: click a goal to see and log its contributions inline.
   ④ investments: allocation-only earmarks as % of net (or gross) income -> RM/mo,
   e.g. "S&P 500 · 12% of net". Home's waterfall splits the surplus into earmarks and

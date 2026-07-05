@@ -58,6 +58,13 @@ CREATE TABLE IF NOT EXISTS expense (
     ends_on TEXT,
     notes TEXT
 );
+CREATE TABLE IF NOT EXISTS subitem (
+    id INTEGER PRIMARY KEY,
+    expense_id INTEGER NOT NULL REFERENCES expense(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    amount REAL NOT NULL DEFAULT 0,
+    note TEXT
+);
 CREATE TABLE IF NOT EXISTS goal (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
@@ -364,6 +371,10 @@ def money_state(con):
                 if not e.get("ends_on") or roll.isoformat() <= e["ends_on"]:
                     e["next_roll"] = roll.isoformat()
                     e["days_to_roll"] = (roll - date.today()).days
+            # informational breakdown of a lump (amounts in the row's own
+            # cadence units) — never part of the map math
+            e["subitems"] = [dict(s) for s in con.execute(
+                "SELECT * FROM subitem WHERE expense_id = ? ORDER BY id", (e["id"],))]
             items.append(e)
         total = sum(i["monthly_eq"] for i in items)
         mapped += total
@@ -1089,6 +1100,7 @@ ENTITIES = {
     "category":     (["name", "sort"], ["name"]),
     "expense":      (["name", "category_id", "amount", "cadence", "is_estimate", "renews_on", "ends_on", "notes"],
                      ["name", "category_id", "amount"]),
+    "subitem":      (["expense_id", "name", "amount", "note"], ["expense_id", "name", "amount"]),
     "goal":         (["name", "target_amount", "deadline", "yearly", "notes"], ["name", "target_amount", "deadline"]),
     "contribution": (["goal_id", "on_date", "amount"], ["goal_id", "on_date", "amount"]),
     "tracker":      (["name", "grp", "interval_months", "expires_on", "expected_cost", "notes"], ["name"]),
@@ -1103,7 +1115,7 @@ ENTITIES = {
 
 NUMERIC = {"gross_monthly", "amount_monthly", "amount", "target_amount", "expected_cost", "cost", "balance", "pct"}
 INTEGER = {"income_id", "category_id", "goal_id", "sort", "is_estimate", "tracker_id", "interval_months", "yearly",
-           "of_gross", "investment_id"}
+           "of_gross", "investment_id", "expense_id"}
 DATES = {"renews_on", "deadline", "on_date", "expires_on", "ends_on"}
 
 
