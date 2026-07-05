@@ -1233,6 +1233,11 @@ def upcoming_page():
     return send_from_directory(app.static_folder, "radar.html")
 
 
+@app.get("/strategy")
+def strategy_page():
+    return send_from_directory(app.static_folder, "strategy.html")
+
+
 @app.get("/savings")
 def savings():
     return send_from_directory(app.static_folder, "savings.html")

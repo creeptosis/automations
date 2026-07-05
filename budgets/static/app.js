@@ -26,7 +26,8 @@ const LOGO = '<svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-h
 (function mountNav() {
   // brand is the logo alone — the first tab already reads "Budget"
   const links = [["/", "Budget", "home"], ["/plan", "Plan", "plan"],
-                 ["/upcoming", "Upcoming", "radar"], ["/savings", "Savings", "savings"]];
+                 ["/upcoming", "Upcoming", "radar"], ["/savings", "Savings", "savings"],
+                 ["/strategy", "Strategy", "strategy"]];
   const here = document.body.dataset.page;
   $("top").innerHTML = '<div class="nav-inner"><a class="brand" href="/">' + LOGO + "</a><nav>" +
     links.map(([href, label, key]) =>

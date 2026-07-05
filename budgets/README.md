@@ -12,9 +12,9 @@ Every ringgit of net income mapped -> surplus -> wealth goals. Flask + SQLite, p
 Commands live in `..\bin` and are on PATH via forwarders in `C:\Users\etern\bin`.
 Manual fallback: `python scripts/gui.py`.
 
-Four tabs, one per question (restructured 2026-07-05; the old /manage, /subs, /life,
+Five tabs, one per question (restructured 2026-07-05; the old /manage, /subs, /life,
 /radar, /history, /reconcile and /month URLs redirect to their new homes). Nav labels:
-Budget · Plan · Upcoming · Savings.
+Budget · Plan · Upcoming · Savings · Strategy.
 
 - `/` (home) — decide: gross -> deductions -> net -> categories (RM + % of net) -> surplus,
   goal pacing ("surplus gives RM X/mo -> RM Y by deadline"), and upcoming non-monthly
@@ -61,6 +61,13 @@ Budget · Plan · Upcoming · Savings.
   snapshots. Never required beyond the one check-in - skip the rest and the app
   works exactly as before. PDF statements: drop one sample in `samples/`
   (gitignored) and the exact parser gets built against it.
+
+- `/strategy` — the standing playbook, static reference (no data entry): float rule
+  (RM15-20k liquid always), the stack (S&P DCA -> house fund -> EPF), EPF dividend
+  mechanics (contributions earn from the last day of their month - drip beats a
+  December lump), broker comparison (IBKR CSPX quarterly vs moomoo VOO monthly),
+  cash-parking rates (dated - rates move), and house affordability numbers.
+  Update it when the strategy changes; it is advice-as-of-a-date, not live data.
 
 Money model (locked 2026-07-05): exact recurring items (subscriptions, rent, insurance,
 with real renewal dates) + lump-sum monthly estimates (food, personal). No per-transaction
