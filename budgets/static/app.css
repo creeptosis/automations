@@ -148,6 +148,7 @@ tr.editing td { background: rgba(107, 166, 255, .07); }
 tr.item td { border-top: none; padding-top: 0; padding-bottom: 8px; font-size: 12.5px; }
 tr.dimrow td { color: var(--text-3); }
 .subpad { padding-left: 34px !important; }
+.subpad2 { padding-left: 52px !important; }
 
 .chev {
   display: inline-flex; margin-right: 9px; vertical-align: -1px;
@@ -390,5 +391,6 @@ select.txncat { padding: 4px 6px; font-size: 12px; border-radius: 7px; }
   th:first-child, td:first-child { padding-left: 12px; }
   th:last-child, td:last-child { padding-right: 12px; }
   .subpad { padding-left: 26px !important; }
+  .subpad2 { padding-left: 40px !important; }
   .goal { padding: 12px 12px 13px; }
 }
