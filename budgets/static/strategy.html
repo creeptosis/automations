@@ -22,15 +22,17 @@
     <div class="l3">Emergency only. Invest what sits above it — never the float itself.</div>
   </div>
 
-  <h2>the stack · where each ringgit goes, in order</h2>
+  <h2>the stack · priority order — each tier fills before the next</h2>
   <div class="card">
     <table>
-      <tr><td class="datecell">1</td><td>float</td><td class="n">RM15–20k</td><td class="mut">GO+ / savings — touched only in emergencies</td></tr>
-      <tr><td class="datecell">2</td><td>S&amp;P 500</td><td class="n"><span id="d-sp">—</span>/mo</td><td class="mut">10% of net — rain or shine, see brokers below</td></tr>
-      <tr><td class="datecell">3</td><td>house fund</td><td class="n"><span id="d-hf">—</span>/mo</td><td class="mut">the rest of the surplus, into KDI Save, until the down payment is ready</td></tr>
-      <tr><td class="datecell">4</td><td>EPF top-up</td><td class="n">by month-end</td><td class="mut">drip committed money monthly; December sweeps the undecided rest</td></tr>
+      <tr><td class="datecell">1</td><td>float</td><td class="n">RM15–20k</td><td class="mut">GO+ — emergencies only; it grows on its own, skim anything past 20k down the stack</td></tr>
+      <tr><td class="datecell">2</td><td>S&amp;P 500</td><td class="n"><span id="d-sp">—</span>/mo</td><td class="mut">10% of net, the fixed cut — bought quarterly on IBKR</td></tr>
+      <tr><td class="datecell">3</td><td>house fund</td><td class="n"><span id="d-hf">—</span>/mo</td><td class="mut">everything left, into KDI Save — must stay liquid for the down payment</td></tr>
+      <tr><td class="datecell">4</td><td>EPF top-up</td><td class="n">the residue</td><td class="mut">December sweep of undecided cash + bonuses/windfalls — locked till 55, so it comes last in order, not in importance</td></tr>
     </table>
-    <div class="note">after the house lands: the house-fund stream becomes the installment — revisit the S&amp;P % and EPF then</div>
+    <div class="note">the order is lock-in, not importance: most reachable first, most locked last — a bad month shrinks the bottom tier, never the float or the S&amp;P cut.
+      no house within ~3 yrs? tier 3 redirects to EPF: drip <span id="d-hf3">—</span>/mo monthly by month-end.
+      after the house lands: the tier-3 stream becomes the installment — revisit S&amp;P % and EPF then</div>
   </div>
 
   <h2>EPF facts</h2>
@@ -38,6 +40,7 @@
     <table>
       <tr><td>dividend timing</td><td colspan="2">counted from the <b>last day of the contribution month</b> to Dec 31 (aggregate daily balance) — the rate is only <i>declared</i> once a year</td></tr>
       <tr><td>so</td><td colspan="2">EPF-bound money goes in monthly, by month-end — a December lump earns ~nothing that year</td></tr>
+      <tr><td>how much / mo</td><td colspan="2">house-first (current plan): nothing monthly — December sweep + bonuses only · if the house is off: the tier-3 stream, <span id="d-epfalt">—</span>/mo dripped monthly</td></tr>
       <tr><td>cap</td><td colspan="2">RM100k voluntary per calendar year — hitting it needs <span id="d-capneed">—</span>/mo of surplus; the plan currently has <span id="d-sur">—</span>/mo</td></tr>
       <tr><td>cash-flow ceiling</td><td colspan="2">surplus × 12 = <span id="d-capyr">—</span>/yr if every spare ringgit went to EPF</td></tr>
       <tr><td>lock</td><td colspan="2">locked until 55 — only the small Akaun Fleksibel slice is withdrawable</td></tr>
@@ -56,8 +59,9 @@
       <tr><td>buy rhythm</td><td><b>quarterly</b> (3 months of the S&amp;P stream ≈ <span id="d-spq">—</span>) so fixed fees stay ~0.3%</td><td>monthly is fine — cost scales with amount</td></tr>
       <tr><td>setup + funding</td><td>more forms; fund via Wise or bank transfer</td><td>local eKYC, FPX deposit, same-day</td></tr>
     </table>
-    <div class="note">no broker registers shares in your personal name — everyone holds via nominee/custodian (IBKR carries SIPC USD500k).
-      verdict: start where friction is lowest; switch to IBKR + CSPX before the pot nears USD 60k.</div>
+    <div class="note">the pick: <b>IBKR + CSPX, quarterly</b> — one-time setup pain, zero migration later; moomoo/webull only as a fallback if IBKR signup stalls.
+      safety: no broker registers shares in your personal name — holdings sit segregated at custodians, and IBKR carries SIPC USD500k, so a broker failing ≠ losing the shares.
+      one broker is fine at this size; export a yearly statement for records, revisit splitting only past ~USD100k.</div>
   </div>
 
   <h2>parking · cash that must stay liquid</h2>
@@ -70,7 +74,8 @@
       <tr><td>TnG GO+</td><td class="n">~3.4%</td><td class="mut">the float lives here — zero friction</td></tr>
     </table>
     <div class="note">rates as of Jul 2026, none PIDM-insured (low-risk money-market funds) · GO+ pays directly:
-      Quick Reload tops the eWallet from GO+ mid-payment (everything except P2P transfers); cash-out to eWallet is instant, to bank 1–2 days</div>
+      Quick Reload tops the eWallet from GO+ mid-payment (everything except P2P transfers); cash-out to eWallet is instant, to bank 1–2 days ·
+      the float grows in place (≈RM50/mo on RM17.5k at today's rate) — the 15–20k is a target band, skim what climbs past it</div>
   </div>
 
   <h2>house numbers · computed from the live plan</h2>
@@ -104,6 +109,8 @@ async function load() {
   $("d-spq").textContent = fmt(sp * 3);
   $("d-hf").textContent = fmt(hf);
   $("d-hf2").textContent = fmt(hf);
+  $("d-hf3").textContent = fmt(hf);
+  $("d-epfalt").textContent = fmt(hf);
   $("d-sur").textContent = fmt(s.surplus);
   $("d-capneed").textContent = fmt(100000 / 12);
   $("d-capyr").textContent = fmt(s.surplus * 12);
