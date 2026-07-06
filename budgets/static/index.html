@@ -37,7 +37,7 @@
 
   <div class="inline-note" id="driftline" hidden></div>
 
-  <h2>map</h2>
+  <h2>map <a class="linky" id="expandall">expand all</a></h2>
   <div class="card">
     <div class="skelwrap"><div class="skel" style="width:42%"></div><div class="skel" style="width:78%"></div><div class="skel" style="width:64%"></div><div class="skel" style="width:70%"></div></div>
     <table id="waterfall"></table>
@@ -156,6 +156,14 @@ function toggle(id, row) {
   row.classList.toggle("open");
   document.querySelectorAll(".item.c" + id).forEach(r => r.hidden = !r.hidden);
 }
+
+let allOpen = false;
+$("expandall").addEventListener("click", () => {
+  allOpen = !allOpen;
+  document.querySelectorAll("#waterfall tr.rowlink").forEach(r => r.classList.toggle("open", allOpen));
+  document.querySelectorAll("#waterfall tr.item").forEach(r => r.hidden = !allOpen);
+  $("expandall").textContent = allOpen ? "collapse all" : "expand all";
+});
 
 function goals(s) {
   const out = [];
