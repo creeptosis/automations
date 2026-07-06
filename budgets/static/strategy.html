@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0d13">
 <title>Budget · strategy</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='32' y2='32'%3E%3Cstop stop-color='%233ecf8e'/%3E%3Cstop offset='1' stop-color='%234f7cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Crect x='7' y='17' width='4.5' height='8' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='13.75' y='12' width='4.5' height='13' rx='2' fill='%23fff' opacity='.9'/%3E%3Crect x='20.5' y='7' width='4.5' height='18' rx='2' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="/static/app.css?v=5">
+<link rel="stylesheet" href="/static/app.css?v=6">
 </head>
 <body data-page="strategy">
 <header id="top"></header>
@@ -18,14 +18,14 @@
   </div>
 
   <div class="card">
-    <div class="l1"><b>Float rule: RM15–20k stays liquid at all times.</b></div>
-    <div class="l3">Emergency only. Invest what sits above it — never the float itself.</div>
+    <div class="l1"><b>Float rule: 6 months of spending stays liquid — <span id="d-float">—</span> today.</b></div>
+    <div class="l3">6 × <span id="d-spend">—</span>/mo mapped spending, conservative by design — the target moves with the plan. Emergency only; invest what sits above it, never the float itself.</div>
   </div>
 
   <h2 data-i="layers">the stack · priority order — each tier fills before the next</h2>
   <div class="card">
     <table>
-      <tr><td class="datecell">1</td><td>float</td><td class="n">RM15–20k</td><td class="mut">GO+ — emergencies only; it grows on its own, skim anything past 20k down the stack</td></tr>
+      <tr><td class="datecell">1</td><td>float</td><td class="n"><span id="d-float2">—</span></td><td class="mut">GO+ — 6 months of spending, emergencies only; it grows on its own, skim anything past the target down the stack</td></tr>
       <tr><td class="datecell">2</td><td>S&amp;P 500</td><td class="n"><span id="d-sp">—</span>/mo</td><td class="mut">10% of net, the fixed cut — bought quarterly on IBKR</td></tr>
       <tr><td class="datecell">3</td><td>EPF top-up</td><td class="n"><span id="d-hf">—</span>/mo</td><td class="mut">everything left, dripped in monthly by month-end — locked till 55, so it comes last in order, not in importance</td></tr>
     </table>
@@ -75,7 +75,7 @@
     <div class="note">rates as of Jul 2026, none PIDM-insured (low-risk money-market funds) · only the float stays parked under this stack — GO+ wins on friction;
       the rest of the table matters only if a big liquid pot ever returns (house, car) · GO+ pays directly:
       Quick Reload tops the eWallet from GO+ mid-payment (everything except P2P transfers); cash-out to eWallet is instant, to bank 1–2 days ·
-      the float grows in place (≈RM50/mo on RM17.5k at today's rate) — the 15–20k is a target band, skim what climbs past it</div>
+      the float grows in place (≈<span id="d-fgrow">—</span>/mo at ~3.4%) — 6 months of spending is the target, skim what climbs past it</div>
   </div>
 
   <h2 data-i="home">house numbers · reference only — no house in the current stack</h2>
@@ -99,9 +99,14 @@ const RATE = 0.04, YEARS = 35;
 
 async function load() {
   const s = await getJSON("/api/summary");
+  const flt = s.mapped * 6;   // the float rule: 6 months of mapped spending
   const sp = s.net * 0.10;
   const hf = Math.max(0, s.surplus - sp);
   const ceil = s.net * 0.30;
+  $("d-float").textContent = fmt(flt);
+  $("d-float2").textContent = fmt(flt);
+  $("d-spend").textContent = fmt(s.mapped);
+  $("d-fgrow").textContent = fmt(flt * 0.034 / 12);
   const r = RATE / 12, n = YEARS * 12;
   const per100k = 100000 * r / (1 - Math.pow(1 + r, -n));
   const loan = Math.round(ceil / per100k * 100000 / 10000) * 10000;

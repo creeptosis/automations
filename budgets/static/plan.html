@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0d13">
 <title>Budget · plan</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='32' y2='32'%3E%3Cstop stop-color='%233ecf8e'/%3E%3Cstop offset='1' stop-color='%234f7cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Crect x='7' y='17' width='4.5' height='8' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='13.75' y='12' width='4.5' height='13' rx='2' fill='%23fff' opacity='.9'/%3E%3Crect x='20.5' y='7' width='4.5' height='18' rx='2' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="/static/app.css?v=5">
+<link rel="stylesheet" href="/static/app.css?v=6">
 </head>
 <body data-page="plan" class="wide">
 <header id="top"></header>
@@ -14,7 +14,7 @@
 
   <div class="pagehead"><h1>Plan</h1><p>top to bottom = setup order</p></div>
 
-  <h2 style="margin-top:0" data-i="banknote">income · gross → net <a class="linky" id="inc-add">+ income</a></h2>
+  <h2 style="margin-top:0" data-i="banknote">income · gross → net <a class="linky addbtn" id="inc-add">+ income</a></h2>
   <div class="card">
     <div class="skelwrap"><div class="skel" style="width:45%"></div><div class="skel" style="width:52%"></div></div>
     <table id="t-income"></table>
@@ -41,11 +41,11 @@
     </div>
   </div>
 
-  <h2 data-i="cart">spending · one list — everything money goes to</h2>
+  <h2 data-i="cart">spending · one list — everything money goes to <a class="linky addbtn" id="spend-add">+ spending</a></h2>
   <div class="card">
     <div class="skelwrap"><div class="skel" style="width:64%"></div><div class="skel" style="width:58%"></div><div class="skel" style="width:70%"></div></div>
     <table id="t-spend"></table>
-    <form id="f-spend" class="cardform">
+    <form id="f-spend" class="cardform" hidden>
       <input name="name" placeholder="name" required style="width:150px">
       <input name="tag" placeholder="tag (Housing, Car…)" list="taglist" style="width:150px">
       <datalist id="taglist"></datalist>
@@ -73,11 +73,11 @@
     </form>
   </div>
 
-  <h2 data-i="flag">goals · click a goal to log contributions <span data-tip="goals"></span></h2>
+  <h2 data-i="flag">goals · click a goal to log contributions <span data-tip="goals"></span> <a class="linky addbtn" id="goal-add">+ goal</a></h2>
   <div class="card">
     <div class="skelwrap"><div class="skel" style="width:48%"></div></div>
     <table id="t-goal"></table>
-    <form id="f-goal" class="cardform">
+    <form id="f-goal" class="cardform" hidden>
       <input name="name" placeholder="name" required style="width:200px">
       <input name="target_amount" type="number" step="0.01" min="0" placeholder="target RM" required>
       <input name="deadline" type="date" required>
@@ -87,10 +87,10 @@
     </form>
   </div>
 
-  <h2 data-i="trend">investments · a slice of net on a rhythm — click a row to log transfers</h2>
+  <h2 data-i="trend">investments · a slice of net on a rhythm — click a row to log transfers <a class="linky addbtn" id="invest-add">+ investment</a></h2>
   <div class="card">
     <table id="t-invest"></table>
-    <form id="f-investment" class="cardform">
+    <form id="f-investment" class="cardform" hidden>
       <input name="name" placeholder="name (S&amp;P 500…)" required style="width:180px">
       <select name="mode" title="how the monthly slice is set">
         <option value="pct">% of net</option>
@@ -184,9 +184,18 @@ async function saveDed(ev, incomeId, dedId) {
   return false;
 }
 
-$("inc-add").addEventListener("click", () => {
-  const f = $("f-income");
-  clearForm(f);
+// every section's add-form stays hidden until its header + button is pressed
+for (const [btn, formId] of [["inc-add", "f-income"], ["goal-add", "f-goal"],
+                             ["invest-add", "f-investment"]])
+  $(btn).addEventListener("click", () => {
+    const f = $(formId);
+    clearForm(f);
+    f.hidden = false;
+    f.elements.name.focus();
+  });
+$("spend-add").addEventListener("click", () => {
+  clearSpend();
+  const f = $("f-spend");
   f.hidden = false;
   f.elements.name.focus();
 });
@@ -321,6 +330,7 @@ function spendForm() {
 function editSpend(kind, id) {
   clearSpend();
   const f = $("f-spend"), el = f.elements, row = ROWS[kind][id];
+  f.hidden = false;
   if (kind === "expense") {
     el.repeat.value = row.cadence;
     el.tag.value = row._cat;
@@ -350,6 +360,7 @@ function editSpend(kind, id) {
 function clearSpend() {
   const f = $("f-spend");
   f.reset();
+  f.hidden = true;
   delete f.dataset.edit;
   f.querySelector("button").textContent = "add";
   document.querySelectorAll("tr.editing").forEach(r => r.classList.remove("editing"));
@@ -396,21 +407,25 @@ spendForm();
 function renderGoals() {
   const rows = [];
   if (S.goals.length)
-    rows.push(`<tr><th>name</th><th class="n">target</th><th>deadline</th><th>notes</th><th></th></tr>`);
+    rows.push(`<tr><th>name</th><th class="n">target</th><th class="n">done</th><th>deadline</th><th>notes</th><th></th></tr>`);
   for (const g of S.goals) {
     ROWS.goal[g.id] = g;
+    const w = g.target_amount > 0 ? Math.min(100, 100 * g.contributed / g.target_amount) : 0;
     rows.push(`<tr id="r-goal-${g.id}" class="rowlink" onclick="toggleGoal(${g.id}, this)">` +
       `<td><span class="chev">${ICON.chev}</span>${esc(g.name)}${g.yearly ? ' <span class="pill">yearly</span>' : ""}` +
-      ` <span class="dim">· ${g.contributions.length} logged</span></td>` +
-      `<td class="n">${fmt(g.target_amount)}</td><td class="datecell mut">by ${g.deadline}</td>` +
+      ` <span class="dim">· ${fmt(g.contributed)} in</span></td>` +
+      `<td class="n">${fmt(g.target_amount)}</td>` +
+      `<td class="n"><span class="minitrack"><span class="fill ${w >= 100 ? "best" : "done"}" style="width:${w}%"></span></span>` +
+      ` <span class="mut">${w.toFixed(0)}%</span></td>` +
+      `<td class="datecell mut">by ${g.deadline}</td>` +
       `<td class="mut">${esc(g.notes)}</td>` +
       `<td class="act"><a class="iconbtn" onclick="event.stopPropagation();edit('goal',${g.id})" title="edit">${ICON.pen}</a>` +
       `<a class="iconbtn" onclick="event.stopPropagation();del('goal',${g.id})" title="delete">${ICON.x}</a></td></tr>`);
     for (const c of g.contributions)
       rows.push(`<tr class="item g${g.id}" hidden><td class="subpad datecell mut">${c.on_date}</td>` +
-        `<td class="n mut">${fmt(c.amount)}</td><td colspan="2"></td>` +
+        `<td class="n mut">${fmt(c.amount)}</td><td colspan="3"></td>` +
         `<td class="act"><a class="iconbtn" onclick="del('contribution',${c.id})" title="delete">${ICON.x}</a></td></tr>`);
-    rows.push(`<tr class="item logrow g${g.id}" hidden><td colspan="5" class="subpad">` +
+    rows.push(`<tr class="item logrow g${g.id}" hidden><td colspan="6" class="subpad">` +
       `<form class="cardform" style="padding:2px 0 8px;border:none" onsubmit="return addContribution(event,${g.id})">` +
       `<input type="date" name="on_date" value="${S.as_of}" required>` +
       `<input type="number" name="amount" step="0.01" min="0" placeholder="RM" required>` +
@@ -692,10 +707,10 @@ function readForm(f) {
 
 function clearForm(f) {
   f.reset();
+  f.hidden = true;
   delete f.dataset.edit;
   f.querySelector("button").textContent = f.querySelector("button").dataset.add;
   document.querySelectorAll("tr.editing").forEach(r => r.classList.remove("editing"));
-  if (f.id === "f-income") f.hidden = true;
   if (f.id === "f-investment") investForm();
 }
 

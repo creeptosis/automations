@@ -23,7 +23,8 @@ Budget · Plan · Upcoming · Savings · Strategy.
   investments - the ⓘ next to the heading explains the split) and paces each one
   ("surplus gives RM X/mo -> RM Y by deadline"). Goals marked "resets yearly" roll
   their deadline to Dec 31 every year and count only that year's contributions.
-- `/plan` — enter/edit everything, top to bottom in setup order.
+- `/plan` — enter/edit everything, top to bottom in setup order; every section's
+  add-form stays hidden behind the + button in its header.
   ① income: gross with deductions indented beneath (per-income net line); forms stay
   hidden until "+ income" (heading) or + on an income row (inline deduction under
   that income) is pressed. Or skip typing entirely: upload a payslip PDF and the reader pulls gross, EPF/SOCSO/EIS/PCB,
@@ -41,7 +42,8 @@ Budget · Plan · Upcoming · Savings · Strategy.
   Notes show dim after the name. A mapped row expands (click) into its breakdown:
   named fixed pieces inside the lump (TIME internet 145.20, Cuckoo 60 "2nd of month")
   plus the unaccounted rest - informational only, the map still counts the lump.
-  ③ goals: click a goal to see and log its contributions inline.
+  ③ goals: a completion bar per row (contributed vs target); click a goal to see
+  and log its contributions inline.
   ④ investments: allocation-only earmarks as % of net (or gross) income -> RM/mo,
   e.g. "S&P 500 · 12% of net", plus a rhythm: a cadence (moves monthly/quarterly/...)
   and a "first due" date that anchors it (EPF drip: a month-end; S&P: the first
@@ -72,7 +74,8 @@ Budget · Plan · Upcoming · Savings · Strategy.
   (gitignored) and the exact parser gets built against it.
 
 - `/strategy` — the standing playbook, static reference (no data entry): float rule
-  (RM15-20k liquid always), the stack (float -> S&P DCA -> EPF drip), EPF dividend
+  (6 months of mapped spending stays liquid - computed live, moves with the plan),
+  the stack (float -> S&P DCA -> EPF drip), EPF dividend
   mechanics (contributions earn from the last day of their month - drip beats a
   December lump), broker comparison (IBKR CSPX quarterly vs moomoo VOO monthly),
   cash-parking rates (dated - rates move), and house affordability numbers.
