@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0d13">
 <title>Budget · upcoming</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='32' y2='32'%3E%3Cstop stop-color='%233ecf8e'/%3E%3Cstop offset='1' stop-color='%234f7cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Crect x='7' y='17' width='4.5' height='8' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='13.75' y='12' width='4.5' height='13' rx='2' fill='%23fff' opacity='.9'/%3E%3Crect x='20.5' y='7' width='4.5' height='18' rx='2' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="/static/app.css?v=3">
+<link rel="stylesheet" href="/static/app.css?v=4">
 </head>
 <body data-page="radar">
 <header id="top"></header>
@@ -28,13 +28,13 @@
     <table id="tbl"></table>
   </div>
 
-  <h2>log only · when did I last …</h2>
+  <h2 data-i="list">log only · when did I last …</h2>
   <div class="card">
     <table id="logs"></table>
   </div>
 
 </main>
-<script src="/static/app.js?v=6"></script>
+<script src="/static/app.js?v=7"></script>
 <script>
 let TODAY, TRK = {};
 
@@ -75,7 +75,8 @@ function render(s) {
   TRK = {};
   for (const t of s.trackers) TRK[t.id] = t;
 
-  // dated list: expense renewals + tracker dues/expiries, one timeline
+  // dated list: expense renewals + tracker dues/expiries + investment moves,
+  // one timeline
   const dated = [];
   for (const c of s.categories)
     for (const e of c.items)
@@ -88,6 +89,10 @@ function render(s) {
       dated.push({kind: "tracker", when: t.next_due, days: t.days_to_due,
                   name: t.name, tag: t.grp || "", rm: t.expected_cost,
                   exp: !!t.expires_on, t});
+  for (const v of s.investments)
+    if (v.next_due)
+      dated.push({kind: "invest", when: v.next_due, days: v.days_to_due,
+                  name: v.name, tag: "invest", rm: v.per_move, cad: v.cadence, v});
   dated.sort((a, b) => a.when.localeCompare(b.when));
 
   const overdue = dated.filter(d => d.days < 0);
@@ -111,6 +116,13 @@ function render(s) {
         `<td class="mut">${d.exp ? "fixed expiry" : d.t.interval_months ? everyTxt(d.t.interval_months) : ""}</td>` +
         `<td class="mut" style="text-align:right">${d.t.last ? "last " + ago(d.t.last.on_date) : ""}</td></tr>`);
       rows.push(...trackerSubRows(d.t));
+    } else if (d.kind === "invest") {
+      rows.push(`<tr class="rowlink" onclick="toggleInvest(${d.v.id}, this)">` +
+        `<td class="datecell"><span class="chev">${ICON.chev}</span>${d.when} ${duePill(d.days, false)}</td>` +
+        `<td><span class="ic-invest">${ICON.trend}</span>${esc(d.name)}</td><td class="mut">${esc(d.tag)}</td>` +
+        `<td class="n">${fmt(d.rm)}</td><td class="mut">${d.cad}</td>` +
+        `<td class="mut" style="text-align:right">${d.v.txns.length ? "last " + ago(d.v.txns[0].on_date) : ""}</td></tr>`);
+      rows.push(...investSubRows(d.v));
     } else {
       rows.push(`<tr><td class="datecell">${d.when} ${duePill(d.days, false)}</td>` +
         `<td>${esc(d.name)}${d.est ? ' <span class="pill" title="estimate">≈</span>' : ""}</td>` +
@@ -139,9 +151,50 @@ function render(s) {
     `<tr><td class="empty">none — “log only” items from <a href="/plan">plan</a> show up here</td></tr>`;
 }
 
+// history rows + inline log form under an investment row; logging a transfer
+// rolls its due date forward to the next slot on the rhythm
+function investSubRows(v) {
+  const rows = [];
+  for (const t of v.txns)
+    rows.push(`<tr class="item v${v.id}" hidden><td class="subpad datecell mut">${t.on_date}</td>` +
+      `<td class="n mut">${fmt(t.amount)}</td><td colspan="3"></td>` +
+      `<td class="act"><a class="iconbtn" onclick="delInvestTxn(event,${t.id})" title="delete">${ICON.x}</a></td></tr>`);
+  rows.push(`<tr class="item logrow v${v.id}" hidden><td colspan="6" class="subpad">` +
+    `<form class="cardform" style="padding:2px 0 8px;border:none" onsubmit="return logInvest(event,${v.id})">` +
+    `<input type="date" name="on_date" value="${TODAY}" required>` +
+    `<input type="number" name="amount" step="0.01" min="0" value="${v.per_move || ""}" required>` +
+    `<button class="sm">log transfer</button></form></td></tr>`);
+  return rows;
+}
+
 function toggle(id, row) {
   row.classList.toggle("open");
   document.querySelectorAll(".t" + id).forEach(r => r.hidden = !r.hidden);
+}
+
+function toggleInvest(id, row) {
+  row.classList.toggle("open");
+  document.querySelectorAll(".v" + id).forEach(r => r.hidden = !r.hidden);
+}
+
+async function logInvest(ev, id) {
+  ev.preventDefault();
+  const el = ev.target.elements;
+  try {
+    await api("POST", "/api/invest_txn",
+              {investment_id: id, on_date: el.on_date.value, amount: el.amount.value});
+    await load();
+  } catch {}
+  return false;
+}
+
+async function delInvestTxn(ev, id) {
+  ev.stopPropagation();
+  if (!confirm("delete this transfer?")) return;
+  try {
+    await api("DELETE", "/api/invest_txn/" + id);
+    await load();
+  } catch {}
 }
 
 async function logEntry(ev, id) {

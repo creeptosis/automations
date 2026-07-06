@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0d13">
 <title>Budget · savings</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='32' y2='32'%3E%3Cstop stop-color='%233ecf8e'/%3E%3Cstop offset='1' stop-color='%234f7cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Crect x='7' y='17' width='4.5' height='8' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='13.75' y='12' width='4.5' height='13' rx='2' fill='%23fff' opacity='.9'/%3E%3Crect x='20.5' y='7' width='4.5' height='18' rx='2' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="/static/app.css?v=3">
+<link rel="stylesheet" href="/static/app.css?v=4">
 </head>
 <body data-page="savings" class="wide">
 <header id="top"></header>
@@ -26,7 +26,7 @@
   <div class="card drift" id="proj">
     <div class="skelwrap"><div class="skel" style="width:48%"></div><div class="skel" style="width:70%"></div></div>
   </div>
-  <h2>check-ins · total bank balance, once a month — anchors the projection</h2>
+  <h2 data-i="check">check-ins · total bank balance, once a month — anchors the projection</h2>
   <div class="card">
     <table id="checkins"></table>
     <form id="f-checkin" class="cardform">
@@ -37,19 +37,19 @@
     </form>
   </div>
 
-  <h2>drift · plan vs what the bank actually did</h2>
+  <h2 data-i="scales">drift · plan vs what the bank actually did</h2>
   <div class="card drift" id="drift"></div>
 
-  <h2>actual vs plan <select id="month" onchange="load(this.value)"></select></h2>
+  <h2 data-i="chart">actual vs plan <select id="month" onchange="load(this.value)"></select></h2>
   <div class="card">
     <div class="skelwrap"><div class="skel" style="width:52%"></div><div class="skel" style="width:74%"></div></div>
     <table id="actuals"></table>
   </div>
 
-  <h2>unmatched spend · teach a rule, it applies forever</h2>
+  <h2 data-i="filter">unmatched spend · teach a rule, it applies forever</h2>
   <div class="card"><table id="unmatched"></table></div>
 
-  <h2>upload a statement</h2>
+  <h2 data-i="upload">upload a statement</h2>
   <div class="card">
     <form id="f-upload" class="cardform">
       <label class="btn ghost" for="file">choose file</label>
@@ -64,16 +64,16 @@
       PDF statements (TNB e-bill, TnG e-statement…): drop a sample in <code>budgets/samples/</code> and the exact parser gets built next.</div>
   </div>
 
-  <h2>months · plan as it stood</h2>
+  <h2 data-i="cal">months · plan as it stood</h2>
   <div class="card">
     <table id="months"></table>
     <div class="note">months close automatically on first use in a new month · <a class="linky" id="snapnow">snapshot this month now</a></div>
   </div>
 
-  <h2>transactions <a class="linky" id="txntoggle">show</a></h2>
+  <h2 data-i="list">transactions <a class="linky" id="txntoggle">show</a></h2>
   <div class="card" id="txncard" hidden><table id="txns"></table></div>
 
-  <h2>rules</h2>
+  <h2 data-i="filter">rules</h2>
   <div class="card">
     <table id="rules"></table>
     <form id="f-rule" class="cardform">
@@ -83,11 +83,11 @@
     </form>
   </div>
 
-  <h2>statements</h2>
+  <h2 data-i="file">statements</h2>
   <div class="card"><table id="statements"></table></div>
 
 </main>
-<script src="/static/app.js?v=6"></script>
+<script src="/static/app.js?v=7"></script>
 <script>
 let S = null;   // /api/summary — projection, check-ins, drift, snapshots
 let R = null;   // /api/reconcile — statements, actuals, rules

@@ -17,10 +17,12 @@ Five tabs, one per question (restructured 2026-07-05; the old /manage, /subs, /l
 Budget · Plan · Upcoming · Savings · Strategy.
 
 - `/` (home) — decide: gross -> deductions -> net -> categories (RM + % of net) -> surplus,
-  goal pacing ("surplus gives RM X/mo -> RM Y by deadline"), and upcoming non-monthly
-  rolls in the next 90 days. Goals marked "resets yearly" (EPF self-contribution:
-  the RM100k cap is per calendar year) roll their deadline to Dec 31 every year and
-  count only that year's contributions - the goal never goes stale.
+  then upcoming (next 90 days: non-monthly rolls, tracker dues AND investment moves -
+  transfers get their own "to investments" total, separate from spending), then goals.
+  The goals section only renders while a goal exists (standing routes belong in
+  investments - the ⓘ next to the heading explains the split) and paces each one
+  ("surplus gives RM X/mo -> RM Y by deadline"). Goals marked "resets yearly" roll
+  their deadline to Dec 31 every year and count only that year's contributions.
 - `/plan` — enter/edit everything, top to bottom in setup order.
   ① income: gross with deductions indented beneath (per-income net line); forms stay
   hidden until "+ income" (heading) or + on an income row (inline deduction under
@@ -41,17 +43,24 @@ Budget · Plan · Upcoming · Savings · Strategy.
   plus the unaccounted rest - informational only, the map still counts the lump.
   ③ goals: click a goal to see and log its contributions inline.
   ④ investments: allocation-only earmarks as % of net (or gross) income -> RM/mo,
-  e.g. "S&P 500 · 12% of net". Home's waterfall splits the surplus into earmarks and
-  "free for goals"; goal pacing draws on the free part; click a row to log actual
-  transfers (which drift nets out, same as goal contributions). No returns/price
-  tracking - conservative estimates only, later, per the locked scope.
+  e.g. "S&P 500 · 12% of net", plus a rhythm: a cadence (moves monthly/quarterly/...)
+  and a "first due" date that anchors it (EPF drip: a month-end; S&P: the first
+  quarterly buy). per-move RM = the monthly earmark accumulated over the cadence.
+  Logging a transfer covers the slot it lands on and rolls the due date to the next
+  one; missed slots stay visible as overdue. Rows with a due date join /upcoming and
+  home's 90-day list. Home's waterfall splits the surplus into earmarks and "free for
+  goals"; goal pacing draws on the free part; click a row to log actual transfers
+  (which drift nets out, same as goal contributions). No returns/price tracking -
+  conservative estimates only, later, per the locked scope.
   Plus a "tags" section at the bottom: rename or delete any tag (expense category
   or tracker group) with usage counts; deletes are refused while items still use it.
-- `/upcoming` (was /radar) — everything dated on one timeline, soonest first: expense renewals and
-  tracker dues/expiries together. Tracker rows expand in place to log a renewal
-  (expiry items offer "new expiry" in the same form - road tax renewals are one row);
-  logging a past date backfills "last changed". Below it, the log-only list answers
-  "when did I last ..." (haircut, running shoes). Definitions are edited in /plan.
+- `/upcoming` (was /radar) — everything dated on one timeline, soonest first: expense
+  renewals, tracker dues/expiries and investment moves together. Tracker rows expand
+  in place to log a renewal (expiry items offer "new expiry" in the same form - road
+  tax renewals are one row); investment rows expand to log the transfer (amount
+  prefilled with the per-move RM, due date rolls forward); logging a past date
+  backfills "last changed". Below it, the log-only list answers "when did I last ..."
+  (haircut, running shoes). Definitions are edited in /plan.
 - `/savings` — the projection, front and centre: net − plan = surplus/mo, carried
   forward ("by Dec 31" / "in 12 months"), anchored in real ringgit once a monthly
   balance check-in is logged (money moved to goals/investments stays counted as
@@ -63,7 +72,7 @@ Budget · Plan · Upcoming · Savings · Strategy.
   (gitignored) and the exact parser gets built against it.
 
 - `/strategy` — the standing playbook, static reference (no data entry): float rule
-  (RM15-20k liquid always), the stack (S&P DCA -> house fund -> EPF), EPF dividend
+  (RM15-20k liquid always), the stack (float -> S&P DCA -> EPF drip), EPF dividend
   mechanics (contributions earn from the last day of their month - drip beats a
   December lump), broker comparison (IBKR CSPX quarterly vs moomoo VOO monthly),
   cash-parking rates (dated - rates move), and house affordability numbers.

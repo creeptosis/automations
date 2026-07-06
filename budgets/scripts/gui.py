@@ -133,6 +133,8 @@ CREATE TABLE IF NOT EXISTS investment (
     name TEXT NOT NULL,
     pct REAL NOT NULL,
     of_gross INTEGER NOT NULL DEFAULT 0,
+    cadence TEXT NOT NULL DEFAULT 'monthly',
+    due_on TEXT,
     notes TEXT
 );
 CREATE TABLE IF NOT EXISTS invest_txn (
@@ -163,7 +165,9 @@ def _migrate(con):
     for stmt in ("ALTER TABLE goal ADD COLUMN yearly INTEGER NOT NULL DEFAULT 0",
                  "ALTER TABLE tracker ADD COLUMN grp TEXT",
                  "ALTER TABLE tracker ADD COLUMN expires_on TEXT",
-                 "ALTER TABLE expense ADD COLUMN ends_on TEXT"):
+                 "ALTER TABLE expense ADD COLUMN ends_on TEXT",
+                 "ALTER TABLE investment ADD COLUMN cadence TEXT NOT NULL DEFAULT 'monthly'",
+                 "ALTER TABLE investment ADD COLUMN due_on TEXT"):
         try:
             con.execute(stmt)
         except sqlite3.OperationalError:
@@ -351,6 +355,24 @@ def next_roll(anchor: str, cadence: str) -> date:
     return d
 
 
+def invest_next_due(anchor: str, cadence: str, last_txn: str | None) -> date:
+    """Next transfer date on the anchor's rhythm (anchor = first due date).
+
+    A logged transfer covers the slot it lands on or before (paying the EPF
+    drip on the 28th satisfies that month-end), so the due date advances to
+    the next slot. Missed slots stay in the past - overdue is visible.
+    """
+    a = date.fromisoformat(anchor)
+    step = CADENCE_MONTHS.get(cadence, 1)
+    k = 0
+    if last_txn:
+        t = date.fromisoformat(last_txn)
+        while add_months(a, k * step) < t:
+            k += 1
+        k += 1  # that slot is covered by the last transfer
+    return add_months(a, k * step)
+
+
 def money_state(con):
     incomes = [dict(r) for r in con.execute("SELECT * FROM income ORDER BY id")]
     deductions = [dict(r) for r in con.execute("SELECT * FROM deduction ORDER BY id")]
@@ -439,6 +461,15 @@ def summary():
         r["txns"] = [dict(x) for x in con.execute(
             "SELECT * FROM invest_txn WHERE investment_id = ? ORDER BY on_date DESC, id DESC",
             (r["id"],))]
+        # the rhythm: per-move amount is the monthly earmark accumulated over
+        # the cadence (S&P quarterly = 3 months of the stream in one buy)
+        cad = r.get("cadence") or "monthly"
+        r["per_move"] = round(r["monthly"] * CADENCE_MONTHS.get(cad, 1), 2)
+        if r.get("due_on"):
+            due = invest_next_due(r["due_on"], cad,
+                                  r["txns"][0]["on_date"] if r["txns"] else None)
+            r["next_due"] = due.isoformat()
+            r["days_to_due"] = (due - date.today()).days
         investments.append(r)
     invest_monthly = sum(i["monthly"] for i in investments)
     free_monthly = surplus - invest_monthly
@@ -464,7 +495,8 @@ def summary():
 
     # forward radar: non-monthly expense rolls in the next 90 days (monthly items
     # are already smooth in the mapping; only lumpy cadences surprise a month),
-    # merged with tracker dues (expected money, not budgeted - marked as such;
+    # merged with tracker dues (expected money, not budgeted - marked as such)
+    # and investment moves (transfers out of surplus, not spending - marked too;
     # negative days = overdue, deliberately kept visible)
     upcoming = sorted(
         [{"name": i["name"], "category": c["name"], "amount": i["amount"],
@@ -475,7 +507,11 @@ def summary():
           "category": "due", "amount": t["expected_cost"],
           "on": t["next_due"], "days": t["days_to_due"], "expected": True}
          for t in trackers
-         if t.get("next_due") and t["days_to_due"] <= 90],
+         if t.get("next_due") and t["days_to_due"] <= 90] +
+        [{"name": v["name"], "category": "invest", "amount": v["per_move"],
+          "on": v["next_due"], "days": v["days_to_due"], "invest": True}
+         for v in investments
+         if v.get("next_due") and v["days_to_due"] <= 90],
         key=lambda u: u["on"])
 
     goals = []
@@ -1105,7 +1141,7 @@ ENTITIES = {
     "contribution": (["goal_id", "on_date", "amount"], ["goal_id", "on_date", "amount"]),
     "tracker":      (["name", "grp", "interval_months", "expires_on", "expected_cost", "notes"], ["name"]),
     "entry":        (["tracker_id", "on_date", "cost", "note"], ["tracker_id", "on_date"]),
-    "investment":   (["name", "pct", "of_gross", "notes"], ["name", "pct"]),
+    "investment":   (["name", "pct", "of_gross", "cadence", "due_on", "notes"], ["name", "pct"]),
     "invest_txn":   (["investment_id", "on_date", "amount"], ["investment_id", "on_date", "amount"]),
     "checkin":      (["on_date", "balance", "note"], ["on_date", "balance"]),
     "rule":         (["keyword", "category_id"], ["keyword", "category_id"]),
@@ -1116,7 +1152,7 @@ ENTITIES = {
 NUMERIC = {"gross_monthly", "amount_monthly", "amount", "target_amount", "expected_cost", "cost", "balance", "pct"}
 INTEGER = {"income_id", "category_id", "goal_id", "sort", "is_estimate", "tracker_id", "interval_months", "yearly",
            "of_gross", "investment_id", "expense_id"}
-DATES = {"renews_on", "deadline", "on_date", "expires_on", "ends_on"}
+DATES = {"renews_on", "deadline", "on_date", "expires_on", "ends_on", "due_on"}
 
 
 def clean(entity, data, creating):

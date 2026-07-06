@@ -66,10 +66,13 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 }
 .nav-inner nav::-webkit-scrollbar { display: none; }
 .nav-inner nav a {
+  display: inline-flex; align-items: center; gap: 7px;
   color: var(--text-2); font-size: 13px; white-space: nowrap;
   padding: 6px 11px; border-radius: 8px;
   transition: color .15s, background .15s;
 }
+.nav-inner nav a svg { flex: none; opacity: .7; }
+.nav-inner nav a.on svg, .nav-inner nav a:hover svg { opacity: 1; }
 .nav-inner nav a:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
 .nav-inner nav a.on {
   color: var(--text); background: var(--surface-2);
@@ -94,6 +97,24 @@ h2 select, h2 .linky {
 }
 h2 .linky { font-size: 12px; }
 h2 a { text-transform: none; letter-spacing: normal; }
+h2 > svg { flex: none; margin-right: -2px; opacity: .85; }
+
+/* ---------------------------------------------------------------- info tip */
+
+.tip {
+  position: relative; display: inline-flex;
+  color: var(--text-3); cursor: help; vertical-align: -2px;
+}
+.tip:hover, .tip:focus-within { color: var(--text-2); }
+.tip .tipbox {
+  display: none; position: absolute; top: calc(100% + 9px); left: -14px; z-index: 50;
+  width: min(330px, 76vw);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: var(--shadow); padding: 10px 13px;
+  font-size: 12.5px; font-weight: 400; line-height: 1.55; color: var(--text-2);
+  text-transform: none; letter-spacing: normal; white-space: normal; text-align: left;
+}
+.tip:hover .tipbox, .tip:focus .tipbox, .tip:focus-within .tipbox { display: block; }
 
 /* ------------------------------------------------------------------ cards */
 
@@ -149,6 +170,9 @@ tr.item td { border-top: none; padding-top: 0; padding-bottom: 8px; font-size: 1
 tr.dimrow td { color: var(--text-3); }
 .subpad { padding-left: 34px !important; }
 .subpad2 { padding-left: 52px !important; }
+
+.ic-invest { display: inline-flex; margin-right: 7px; vertical-align: -2px; color: var(--text-3); }
+.ic-invest svg { width: 12px; height: 12px; }
 
 .chev {
   display: inline-flex; margin-right: 9px; vertical-align: -1px;
