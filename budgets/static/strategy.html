@@ -14,7 +14,7 @@
 
   <div class="pagehead">
     <h1>strategy</h1>
-    <p>the standing playbook — decided 2026-07-06, house-first · numbers age, verify rates before acting</p>
+    <p>the standing playbook, house-first · RM figures compute live from the plan · assumptions and dated facts are labelled</p>
   </div>
 
   <div class="card">
@@ -25,23 +25,23 @@
   <h2>the stack · where each ringgit goes, in order</h2>
   <div class="card">
     <table>
-      <tr><td class="datecell">1</td><td>float</td><td>RM15–20k in GO+ / savings</td><td class="mut">touched only in emergencies</td></tr>
-      <tr><td class="datecell">2</td><td>S&amp;P 500</td><td>10% of net ≈ RM900/mo</td><td class="mut">rain or shine — see brokers below</td></tr>
-      <tr><td class="datecell">3</td><td>house fund</td><td>~RM3.3k/mo into KDI Save</td><td class="mut">until ~RM95k upfront is ready (~2 yrs)</td></tr>
-      <tr><td class="datecell">4</td><td>EPF top-up</td><td>drip committed money by month-end</td><td class="mut">December sweeps the undecided rest</td></tr>
+      <tr><td class="datecell">1</td><td>float</td><td class="n">RM15–20k</td><td class="mut">GO+ / savings — touched only in emergencies</td></tr>
+      <tr><td class="datecell">2</td><td>S&amp;P 500</td><td class="n"><span id="d-sp">—</span>/mo</td><td class="mut">10% of net — rain or shine, see brokers below</td></tr>
+      <tr><td class="datecell">3</td><td>house fund</td><td class="n"><span id="d-hf">—</span>/mo</td><td class="mut">the rest of the surplus, into KDI Save, until the down payment is ready</td></tr>
+      <tr><td class="datecell">4</td><td>EPF top-up</td><td class="n">by month-end</td><td class="mut">drip committed money monthly; December sweeps the undecided rest</td></tr>
     </table>
-    <div class="note">after the house lands: the house-fund stream becomes the installment; revisit S&amp;P % and EPF then</div>
+    <div class="note">after the house lands: the house-fund stream becomes the installment — revisit the S&amp;P % and EPF then</div>
   </div>
 
   <h2>EPF facts</h2>
   <div class="card">
     <table>
       <tr><td>dividend timing</td><td colspan="2">counted from the <b>last day of the contribution month</b> to Dec 31 (aggregate daily balance) — the rate is only <i>declared</i> once a year</td></tr>
-      <tr><td>so</td><td colspan="2">EPF-bound money goes in monthly, by month-end — a December lump earns ~nothing that year (drip ≈ RM1k/yr better at RM3k/mo)</td></tr>
-      <tr><td>cap</td><td colspan="2">RM100k voluntary self-contribution per calendar year</td></tr>
+      <tr><td>so</td><td colspan="2">EPF-bound money goes in monthly, by month-end — a December lump earns ~nothing that year</td></tr>
+      <tr><td>cap</td><td colspan="2">RM100k voluntary per calendar year — hitting it needs <span id="d-capneed">—</span>/mo of surplus; the plan currently has <span id="d-sur">—</span>/mo</td></tr>
+      <tr><td>cash-flow ceiling</td><td colspan="2">surplus × 12 = <span id="d-capyr">—</span>/yr if every spare ringgit went to EPF</td></tr>
       <tr><td>lock</td><td colspan="2">locked until 55 — only the small Akaun Fleksibel slice is withdrawable</td></tr>
-      <tr><td>recent dividends</td><td colspan="2">5.5–6.3% (2023–2024 declared)</td></tr>
-      <tr><td>realistic capacity</td><td colspan="2">~RM55–60k/yr steady state on the current map; RM100k needs RM8.3k/mo surplus — not reachable on cash flow</td></tr>
+      <tr><td>recent dividends</td><td colspan="2">5.5–6.3% <span class="dim">(declared for 2023–2024)</span></td></tr>
     </table>
   </div>
 
@@ -53,7 +53,7 @@
       <tr><td>dividend tax</td><td>15% inside the fund, auto-reinvested</td><td>30% withheld ≈ 0.2%/yr drag</td></tr>
       <tr><td>US estate-tax risk</td><td>none</td><td>exposed above USD 60k held</td></tr>
       <tr><td>fees</td><td>~USD 2 FX + ~USD 1–2 per trade, <b>fixed</b></td><td>zero commission — FX spread baked in, <b>%-based</b></td></tr>
-      <tr><td>buy rhythm</td><td><b>quarterly ~RM2.7k</b> so fixed fees ≈ 0.3%</td><td>monthly is fine — cost scales with amount</td></tr>
+      <tr><td>buy rhythm</td><td><b>quarterly</b> (3 months of the S&amp;P stream ≈ <span id="d-spq">—</span>) so fixed fees stay ~0.3%</td><td>monthly is fine — cost scales with amount</td></tr>
       <tr><td>setup + funding</td><td>more forms; fund via Wise or bank transfer</td><td>local eKYC, FPX deposit, same-day</td></tr>
     </table>
     <div class="note">no broker registers shares in your personal name — everyone holds via nominee/custodian (IBKR carries SIPC USD500k).
@@ -73,21 +73,47 @@
       Quick Reload tops the eWallet from GO+ mid-payment (everything except P2P transfers); cash-out to eWallet is instant, to bank 1–2 days</div>
   </div>
 
-  <h2>house numbers</h2>
+  <h2>house numbers · computed from the live plan</h2>
   <div class="card">
     <table>
-      <tr><td>comfortable installment</td><td class="n">RM2.5–2.7k/mo</td><td class="mut">≤ 30% of net — banks will offer more; decline</td></tr>
-      <tr><td>loan that buys</td><td class="n">RM550–610k</td><td class="mut">~4% · 35 yrs</td></tr>
-      <tr><td>property range</td><td class="n">RM620–680k</td><td class="mut">with 10% down</td></tr>
-      <tr><td>upfront cash</td><td class="n">RM95–105k</td><td class="mut">10% + legal/stamp fees</td></tr>
-      <tr><td>ownership extras</td><td class="n">RM300–500/mo</td><td class="mut">maintenance, assessment, insurance — on top of the installment</td></tr>
+      <tr><td>all-in housing ceiling</td><td class="n"><span id="d-ceil">—</span>/mo</td><td class="mut">30% of net — installment <b>and</b> building fees together; banks will offer more, decline</td></tr>
+      <tr><td>every RM100k borrowed</td><td class="n"><span id="d-per">—</span>/mo</td><td class="mut">at <span id="d-rate">—</span> · <span id="d-yrs">—</span> yrs — the one assumption; edit in this page's script when rates move</td></tr>
+      <tr><td>loan the ceiling carries</td><td class="n">≈ <span id="d-loan">—</span></td><td class="mut">building fees eat the same ceiling, so the real offer sits a notch below</td></tr>
+      <tr><td>upfront cash</td><td class="n">~15% of price</td><td class="mut">10% down + legal/stamp fees</td></tr>
     </table>
-    <div class="note">saving ~RM3.3k/mo into the house fund is the affordability rehearsal — carrying the installment later is already proven</div>
+    <div class="note">the house-fund stream (<span id="d-hf2">—</span>/mo) doubles as the affordability rehearsal — carrying an installment that size is already proven</div>
   </div>
 
   <div class="inline-note dim">budget math with Claude, not licensed financial advice · sources: kwsp.gov.my · rates.my · tngdigital.com.my</div>
 
 </main>
 <script src="/static/app.js?v=6"></script>
+<script>
+// mortgage assumption — the only tunable here; everything else derives from /api/summary
+const RATE = 0.04, YEARS = 35;
+
+async function load() {
+  const s = await getJSON("/api/summary");
+  const sp = s.net * 0.10;
+  const hf = Math.max(0, s.surplus - sp);
+  const ceil = s.net * 0.30;
+  const r = RATE / 12, n = YEARS * 12;
+  const per100k = 100000 * r / (1 - Math.pow(1 + r, -n));
+  const loan = Math.round(ceil / per100k * 100000 / 10000) * 10000;
+  $("d-sp").textContent = fmt(sp);
+  $("d-spq").textContent = fmt(sp * 3);
+  $("d-hf").textContent = fmt(hf);
+  $("d-hf2").textContent = fmt(hf);
+  $("d-sur").textContent = fmt(s.surplus);
+  $("d-capneed").textContent = fmt(100000 / 12);
+  $("d-capyr").textContent = fmt(s.surplus * 12);
+  $("d-ceil").textContent = fmt(ceil);
+  $("d-per").textContent = fmt(per100k);
+  $("d-rate").textContent = (RATE * 100).toFixed(1) + "%";
+  $("d-yrs").textContent = YEARS;
+  $("d-loan").textContent = fmt(loan);
+}
+load().catch(console.error);
+</script>
 </body>
 </html>
