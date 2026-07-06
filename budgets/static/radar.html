@@ -92,7 +92,7 @@ function render(s) {
   for (const v of s.investments)
     if (v.next_due)
       dated.push({kind: "invest", when: v.next_due, days: v.days_to_due,
-                  name: v.name, tag: "invest", rm: v.per_move, cad: v.cadence, v});
+                  name: v.name, tag: "Invest", rm: v.per_move, cad: v.cadence, v});
   dated.sort((a, b) => a.when.localeCompare(b.when));
 
   const overdue = dated.filter(d => d.days < 0);

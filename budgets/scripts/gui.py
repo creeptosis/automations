@@ -520,11 +520,11 @@ def summary():
          for c in categories for i in c["items"]
          if i.get("next_roll") and i["cadence"] != "monthly" and i["days_to_roll"] <= 90] +
         [{"name": (t["grp"] + " · " + t["name"]) if t.get("grp") else t["name"],
-          "category": "due", "amount": t["expected_cost"],
+          "category": "Due", "amount": t["expected_cost"],
           "on": t["next_due"], "days": t["days_to_due"], "expected": True}
          for t in trackers
          if t.get("next_due") and t["days_to_due"] <= 90] +
-        [{"name": v["name"], "category": "invest", "amount": v["per_move"],
+        [{"name": v["name"], "category": "Invest", "amount": v["per_move"],
           "on": v["next_due"], "days": v["days_to_due"], "invest": True}
          for v in investments
          if v.get("next_due") and v["days_to_due"] <= 90],
