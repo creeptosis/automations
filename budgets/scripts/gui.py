@@ -131,8 +131,9 @@ CREATE TABLE IF NOT EXISTS rule (
 CREATE TABLE IF NOT EXISTS investment (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    pct REAL NOT NULL,
-    of_gross INTEGER NOT NULL DEFAULT 0,
+    mode TEXT NOT NULL DEFAULT 'pct',
+    pct REAL NOT NULL DEFAULT 0,
+    amount REAL,
     cadence TEXT NOT NULL DEFAULT 'monthly',
     due_on TEXT,
     notes TEXT
@@ -167,7 +168,9 @@ def _migrate(con):
                  "ALTER TABLE tracker ADD COLUMN expires_on TEXT",
                  "ALTER TABLE expense ADD COLUMN ends_on TEXT",
                  "ALTER TABLE investment ADD COLUMN cadence TEXT NOT NULL DEFAULT 'monthly'",
-                 "ALTER TABLE investment ADD COLUMN due_on TEXT"):
+                 "ALTER TABLE investment ADD COLUMN due_on TEXT",
+                 "ALTER TABLE investment ADD COLUMN mode TEXT NOT NULL DEFAULT 'pct'",
+                 "ALTER TABLE investment ADD COLUMN amount REAL"):
         try:
             con.execute(stmt)
         except sqlite3.OperationalError:
@@ -448,13 +451,27 @@ def summary():
     incomes, deductions, gross, net, categories, mapped = money_state(con)
     surplus = net - mapped
 
-    # allocation-only investments: pct of income -> RM/mo earmark; money actually
-    # moved is logged per row. No returns/price tracking (locked non-goal).
-    investments = []
-    for r in con.execute("SELECT * FROM investment ORDER BY id"):
-        r = dict(r)
-        base = gross if r["of_gross"] else net
-        r["monthly"] = round(base * r["pct"] / 100, 2)
+    # allocation-only investments: each row earmarks RM/mo by one of three bases -
+    # pct of net, a fixed RM amount, or "everything left" (the surplus remaining
+    # after every other earmark). Money actually moved is logged per row.
+    # No returns/price tracking (locked non-goal).
+    investments = [dict(r) for r in con.execute("SELECT * FROM investment ORDER BY id")]
+    rest_rows = []
+    for r in investments:
+        mode = r.get("mode") or "pct"
+        if mode == "amount":
+            r["monthly"] = round(float(r.get("amount") or 0), 2)
+        elif mode == "rest":
+            rest_rows.append(r)          # filled once the fixed earmarks are known
+            r["monthly"] = 0.0
+        else:
+            r["monthly"] = round(net * r["pct"] / 100, 2)
+    if rest_rows:
+        left = max(0.0, surplus - sum(i["monthly"] for i in investments))
+        for r in rest_rows:
+            r["monthly"] = round(left / len(rest_rows), 2)
+    for r in investments:
+        r["pct_of_net"] = round(100 * r["monthly"] / net, 1) if net > 0 else None
         r["contributed"] = round(con.execute(
             "SELECT COALESCE(SUM(amount), 0) FROM invest_txn WHERE investment_id = ?",
             (r["id"],)).fetchone()[0], 2)
@@ -470,7 +487,6 @@ def summary():
                                   r["txns"][0]["on_date"] if r["txns"] else None)
             r["next_due"] = due.isoformat()
             r["days_to_due"] = (due - date.today()).days
-        investments.append(r)
     invest_monthly = sum(i["monthly"] for i in investments)
     free_monthly = surplus - invest_monthly
 
@@ -1141,7 +1157,7 @@ ENTITIES = {
     "contribution": (["goal_id", "on_date", "amount"], ["goal_id", "on_date", "amount"]),
     "tracker":      (["name", "grp", "interval_months", "expires_on", "expected_cost", "notes"], ["name"]),
     "entry":        (["tracker_id", "on_date", "cost", "note"], ["tracker_id", "on_date"]),
-    "investment":   (["name", "pct", "of_gross", "cadence", "due_on", "notes"], ["name", "pct"]),
+    "investment":   (["name", "mode", "pct", "amount", "cadence", "due_on", "notes"], ["name"]),
     "invest_txn":   (["investment_id", "on_date", "amount"], ["investment_id", "on_date", "amount"]),
     "checkin":      (["on_date", "balance", "note"], ["on_date", "balance"]),
     "rule":         (["keyword", "category_id"], ["keyword", "category_id"]),
@@ -1151,7 +1167,7 @@ ENTITIES = {
 
 NUMERIC = {"gross_monthly", "amount_monthly", "amount", "target_amount", "expected_cost", "cost", "balance", "pct"}
 INTEGER = {"income_id", "category_id", "goal_id", "sort", "is_estimate", "tracker_id", "interval_months", "yearly",
-           "of_gross", "investment_id", "expense_id"}
+           "investment_id", "expense_id"}
 DATES = {"renews_on", "deadline", "on_date", "expires_on", "ends_on", "due_on"}
 
 
@@ -1183,6 +1199,11 @@ def clean(entity, data, creating):
         raise ValueError("cadence must be one of: " + ", ".join(CADENCE_MONTHS))
     if out.get("pct") is not None and out["pct"] > 100:
         raise ValueError("pct must be 0-100")
+    if entity == "investment":
+        if out.get("mode") not in (None, "pct", "amount", "rest"):
+            raise ValueError("mode must be pct, amount or rest")
+        if out.get("pct") is None and ("pct" in out or creating):
+            out["pct"] = 0.0  # column is NOT NULL; unused outside pct mode
     return out
 
 

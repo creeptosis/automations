@@ -71,7 +71,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   padding: 6px 11px; border-radius: 8px;
   transition: color .15s, background .15s;
 }
-.nav-inner nav a svg { flex: none; opacity: .7; }
+.nav-inner nav a svg { flex: none; opacity: .78; }
 .nav-inner nav a.on svg, .nav-inner nav a:hover svg { opacity: 1; }
 .nav-inner nav a:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
 .nav-inner nav a.on {
@@ -97,7 +97,7 @@ h2 select, h2 .linky {
 }
 h2 .linky { font-size: 12px; }
 h2 a { text-transform: none; letter-spacing: normal; }
-h2 > svg { flex: none; margin-right: -2px; opacity: .85; }
+h2 > svg { flex: none; margin-right: -2px; }
 
 /* ---------------------------------------------------------------- info tip */
 

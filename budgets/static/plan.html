@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0d13">
 <title>Budget · plan</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='32' y2='32'%3E%3Cstop stop-color='%233ecf8e'/%3E%3Cstop offset='1' stop-color='%234f7cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Crect x='7' y='17' width='4.5' height='8' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='13.75' y='12' width='4.5' height='13' rx='2' fill='%23fff' opacity='.9'/%3E%3Crect x='20.5' y='7' width='4.5' height='18' rx='2' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="/static/app.css?v=4">
+<link rel="stylesheet" href="/static/app.css?v=5">
 </head>
 <body data-page="plan" class="wide">
 <header id="top"></header>
@@ -14,7 +14,7 @@
 
   <div class="pagehead"><h1>Plan</h1><p>top to bottom = setup order</p></div>
 
-  <h2 style="margin-top:0" data-i="banknote">① income · gross → net <a class="linky" id="inc-add">+ income</a></h2>
+  <h2 style="margin-top:0" data-i="banknote">income · gross → net <a class="linky" id="inc-add">+ income</a></h2>
   <div class="card">
     <div class="skelwrap"><div class="skel" style="width:45%"></div><div class="skel" style="width:52%"></div></div>
     <table id="t-income"></table>
@@ -41,7 +41,7 @@
     </div>
   </div>
 
-  <h2 data-i="cart">② spending · one list — everything money goes to</h2>
+  <h2 data-i="cart">spending · one list — everything money goes to</h2>
   <div class="card">
     <div class="skelwrap"><div class="skel" style="width:64%"></div><div class="skel" style="width:58%"></div><div class="skel" style="width:70%"></div></div>
     <table id="t-spend"></table>
@@ -73,7 +73,7 @@
     </form>
   </div>
 
-  <h2 data-i="flag">③ goals · click a goal to log contributions <span data-tip="goals"></span></h2>
+  <h2 data-i="flag">goals · click a goal to log contributions <span data-tip="goals"></span></h2>
   <div class="card">
     <div class="skelwrap"><div class="skel" style="width:48%"></div></div>
     <table id="t-goal"></table>
@@ -87,13 +87,18 @@
     </form>
   </div>
 
-  <h2 data-i="trend">④ investments · % of income on a rhythm — click a row to log transfers</h2>
+  <h2 data-i="trend">investments · a slice of net on a rhythm — click a row to log transfers</h2>
   <div class="card">
     <table id="t-invest"></table>
     <form id="f-investment" class="cardform">
       <input name="name" placeholder="name (S&amp;P 500…)" required style="width:180px">
+      <select name="mode" title="how the monthly slice is set">
+        <option value="pct">% of net</option>
+        <option value="amount">fixed RM</option>
+        <option value="rest">everything left</option>
+      </select>
       <input name="pct" type="number" step="0.1" min="0" max="100" placeholder="%" required style="width:70px">
-      <select name="of_gross"><option value="0">of net</option><option value="1">of gross</option></select>
+      <input name="amount" type="number" step="0.01" min="0" placeholder="RM/mo" hidden>
       <select name="cadence" title="how often money actually moves">
         <option value="monthly">moves monthly</option>
         <option value="quarterly">moves quarterly</option>
@@ -112,7 +117,7 @@
   </div>
 
 </main>
-<script src="/static/app.js?v=7"></script>
+<script src="/static/app.js?v=8"></script>
 <script>
 let S = null;          // last /api/summary payload
 let ROWS = {};         // entity -> id -> row object (for edit)
@@ -432,12 +437,25 @@ async function addContribution(ev, goalId) {
 
 // ---- ④ investments: % of income earmarks; click a row to log actual transfers
 
+function investForm() {
+  const el = $("f-investment").elements, m = el.mode.value;
+  el.pct.hidden = m !== "pct";
+  el.pct.required = m === "pct";
+  el.amount.hidden = m !== "amount";
+  el.amount.required = m === "amount";
+}
+
 function renderInvest() {
   const rows = [];
   if (S.investments.length)
-    rows.push(`<tr><th>name</th><th class="n">%</th><th class="n">RM/mo</th><th>next move</th><th>notes</th><th></th></tr>`);
+    rows.push(`<tr><th>name</th><th class="n">slice</th><th class="n">RM/mo</th><th>next move</th><th>notes</th><th></th></tr>`);
   for (const v of S.investments) {
     ROWS.investment[v.id] = v;
+    // the slice column always shows the effective % of net — typed for pct
+    // rows, auto-calculated for fixed-RM and everything-left rows
+    const basis = v.mode === "amount" ? `<span class="mut">fixed ·</span> ${pc(v.pct_of_net)} of net`
+      : v.mode === "rest" ? `<span class="mut">all left ·</span> ${pc(v.pct_of_net)} of net`
+      : `${v.pct}% <span class="mut">of net</span>`;
     // per_move = the RM that actually travels each time (monthly earmark × cadence)
     const move = v.next_due
       ? `${v.cadence === "monthly" ? "" : fmt(v.per_move) + " · "}${v.next_due} ` +
@@ -447,7 +465,7 @@ function renderInvest() {
       : `<span class="dim" title="set a first-due date and this row joins upcoming">${v.cadence !== "monthly" ? esc(v.cadence) : "no date"}</span>`;
     rows.push(`<tr id="r-investment-${v.id}" class="rowlink" onclick="toggleInvest(${v.id}, this)">` +
       `<td><span class="chev">${ICON.chev}</span>${esc(v.name)} <span class="dim">· ${fmt(v.contributed)} in</span></td>` +
-      `<td class="n">${v.pct}% <span class="mut">of ${v.of_gross ? "gross" : "net"}</span></td>` +
+      `<td class="n">${basis}</td>` +
       `<td class="n">${fmt(v.monthly)}</td><td class="datecell mut">${move}</td><td class="mut">${esc(v.notes)}</td>` +
       `<td class="act"><a class="iconbtn" onclick="event.stopPropagation();edit('investment',${v.id})" title="edit">${ICON.pen}</a>` +
       `<a class="iconbtn" onclick="event.stopPropagation();del('investment',${v.id})" title="delete">${ICON.x}</a></td></tr>`);
@@ -461,8 +479,10 @@ function renderInvest() {
       `<input type="number" name="amount" step="0.01" min="0" placeholder="RM" value="${v.per_move || ""}" required>` +
       `<button class="sm">log transfer</button></form></td></tr>`);
   }
-  table("t-invest", rows, "none yet — e.g. S&P 500 · 12% of net, moves quarterly");
+  table("t-invest", rows, "none yet — e.g. S&P 500 · 10% of net moves quarterly · EPF · everything left, monthly");
 }
+$("f-investment").elements.mode.addEventListener("change", investForm);
+investForm();
 
 function toggleInvest(id, row) {
   row.classList.toggle("open");
@@ -676,6 +696,7 @@ function clearForm(f) {
   f.querySelector("button").textContent = f.querySelector("button").dataset.add;
   document.querySelectorAll("tr.editing").forEach(r => r.classList.remove("editing"));
   if (f.id === "f-income") f.hidden = true;
+  if (f.id === "f-investment") investForm();
 }
 
 function edit(entity, id) {
@@ -689,6 +710,7 @@ function edit(entity, id) {
   f.dataset.edit = id;
   f.querySelector("button").textContent = "save";
   f.hidden = false;
+  if (entity === "investment") investForm();
   document.querySelectorAll("tr.editing").forEach(r => r.classList.remove("editing"));
   const tr = $(`r-${entity}-${id}`);
   if (tr) tr.classList.add("editing");
@@ -708,9 +730,15 @@ for (const name of ["income", "goal", "investment"]) {
   btn.dataset.add = btn.textContent;
   f.addEventListener("submit", async ev => {
     ev.preventDefault();
+    const data = readForm(f);
+    if (name === "investment") {
+      // only the active base travels; the other stays untouched server-side
+      if (data.mode !== "pct") delete data.pct;
+      if (data.mode !== "amount") delete data.amount;
+    }
     try {
-      if (f.dataset.edit) await api("PUT", `/api/${name}/${f.dataset.edit}`, readForm(f));
-      else await api("POST", `/api/${name}`, readForm(f));
+      if (f.dataset.edit) await api("PUT", `/api/${name}/${f.dataset.edit}`, data);
+      else await api("POST", `/api/${name}`, data);
     } catch { return; }
     clearForm(f);
     await load();
