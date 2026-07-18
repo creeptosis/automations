@@ -195,9 +195,6 @@ def api_plan(name=None):
     base, source = planmod.current_anchor()
     actuals = planmod.actual_km_by_date()
     created = load_created()
-    results = {r["date"]: r["time"]
-               for r in json.loads((BASE_DIR / "config.json")
-                                   .read_text(encoding="utf-8")).get("races", [])}
 
     weeks = []
     for w in p["weeks"]:
@@ -213,7 +210,10 @@ def api_plan(name=None):
                 "text": planmod.describe(day, base),
                 "raw": raw_text(day),
                 "sessions": planmod.split_sessions(day),
-                "result": results.get(dates[d]) if day["type"] == "race" else None,
+                # which session is the swapped-in race-specific work (am/pm/
+                # day, from the plan's specific_phase overlay) - the calendar
+                # highlights it amber
+                "specific": day.get("specific"),
                 "edited": bool(day.get("_edited")),
                 "garmin": {"day": created.get(dates[d]),
                            "am": created.get(dates[d] + ":am"),
@@ -488,6 +488,11 @@ def api_workout():
 
     spec = day.get("workout")
     name = None
+    if day["type"] == "race":
+        # the day text is an event name, not a parseable spec - upload a
+        # plain distance step named after the event
+        spec = f"{float(day.get('km') or 10):g}km"
+        name = day.get("workout") or "Race"
     sessions = planmod.split_sessions(day)
     if session:
         if not sessions or session not in sessions:
@@ -511,6 +516,37 @@ def api_workout():
     key = f"{day_date}:{session}" if session else day_date
     created[key] = {"id": r["id"], "name": r["name"], "url": r["url"]}
     save_created(created)
+    return jsonify({"ok": True, **r})
+
+
+# curated Ingebrigtsen/Almgren sessions in plan shorthand (coach-maintained,
+# sources in knowledge/base-to-specific-transition.md) - shown in the
+# Workouts tab with live paces, pushable to the Garmin library
+BANK_FILE = BASE_DIR / "plans" / "workout-bank.json"
+
+
+@app.route("/api/workout-bank")
+def api_workout_bank():
+    bank = json.loads(BANK_FILE.read_text(encoding="utf-8"))
+    base, _ = planmod.current_anchor()
+    return jsonify({"workouts": [
+        {**w, "text": planmod.annotate(w["spec"], base)}
+        for w in bank["workouts"]
+    ]})
+
+
+@app.route("/api/workout-bank/<wid>", methods=["POST"])
+def api_workout_bank_create(wid):
+    """Push a bank workout to the Garmin library, unscheduled - Ben picks
+    the day on the watch/calendar (or uses a day's own + Garmin button)."""
+    bank = json.loads(BANK_FILE.read_text(encoding="utf-8"))
+    w = next((x for x in bank["workouts"] if x["id"] == wid), None)
+    if not w:
+        return jsonify({"ok": False, "error": f"unknown workout '{wid}'"}), 404
+    try:
+        r = workoutmod.create(w["spec"], name=w["name"])
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
     return jsonify({"ok": True, **r})
 
 
@@ -643,43 +679,6 @@ def api_races():
     cfg["races"] = races
     path.write_text(dump_config(cfg), encoding="utf-8")
     return jsonify({"ok": True, "races": races})
-
-
-@app.route("/api/race-result", methods=["POST"])
-def api_race_result():
-    """Record a race result straight from the calendar's race-day cell.
-    Body: {date, time, distance_km?, event?}. Appends to config.json races
-    (replacing a same-date entry), so a recent result immediately becomes
-    the pace anchor - no hand-editing."""
-    req = request.get_json(force=True)
-    try:
-        day = date.fromisoformat(req["date"]).isoformat()
-    except (KeyError, ValueError) as e:
-        return jsonify({"ok": False, "error": f"bad request: {e}"}), 400
-    time_str = str(req.get("time") or "").strip()
-    if not re.fullmatch(r"(\d+:)?[0-5]?\d:[0-5]\d", time_str):
-        return jsonify({"ok": False, "error": "time must look like 52:30 or 1:53:44"}), 400
-    path = BASE_DIR / "config.json"
-    cfg = json.loads(path.read_text(encoding="utf-8"))
-    races = cfg.setdefault("races", [])
-    # fill the result into the planned entry for that date (keeps the event
-    # name/distance from settings); only create one if none exists
-    existing = next((r for r in races if r.get("date") == day), None)
-    try:
-        km = float(req.get("distance_km") or 0) or (
-            existing["distance_m"] / 1000 if existing else 10)
-    except (TypeError, ValueError):
-        return jsonify({"ok": False, "error": "bad distance"}), 400
-    entry = existing or {"event": "", "date": day, "distance_m": 0, "time": ""}
-    entry["event"] = (str(req.get("event") or "").strip()
-                      or entry["event"] or f"{km:g}km race")
-    entry["distance_m"] = int(round(km * 1000))
-    entry["time"] = time_str
-    if not existing:
-        races.append(entry)
-    races.sort(key=lambda r: r["date"])
-    path.write_text(dump_config(cfg), encoding="utf-8")
-    return jsonify({"ok": True, "entry": entry})
 
 
 @app.route("/api/day", methods=["POST"])

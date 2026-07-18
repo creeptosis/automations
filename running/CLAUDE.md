@@ -76,9 +76,10 @@ When Ben asks for a check-in / coach review:
   times are past results (recent ones anchor paces), and a future-dated
   entry with a blank time IS the next race — auto-detected (earliest date
   >= today, `plan.next_race()`), it sizes the program, phases the weeks and
-  injects the race day; the race-day cell's result form fills the time into
-  that same entry. All writes keep races one-line formatted so the file
-  stays hand-editable as a fallback.
+  injects the race day; after the race Ben fills the time into that entry in
+  settings (no in-calendar result entry — he removed it as clutter). All
+  writes keep races one-line formatted so the file stays hand-editable as a
+  fallback.
   Plan JSONs in `plans/` are coach-maintained content, not user config.
 - `scripts/sync.py` — pull runs + physiology from Garmin into `data/`
 - `scripts/analyze.py` — current fitness report; `scripts/paces.py` — Daniels
@@ -105,13 +106,29 @@ When Ben asks for a check-in / coach review:
   sessions use bare `wu`/`cd` (lap-button, Ben's preference — only give a
   warm-up a duration when it matters). The next race injects a
   race day into its calendar date and phases the weeks Norwegian-style
-  (Bakken/Almgren/Ingebrigtsen + knowledge base): final 5 weeks before race
-  week = "specific" (amber highlight — convert one threshold session/week to
-  race-pace stepping stones), race week green. The race day cell is green-
-  tinted with a 🏁 flag; once the date arrives it shows an "add result"
-  button — an inline time/event form (POST /api/race-result) that appends
-  to config.json races, so the result re-anchors paces with no hand-editing
-  (same-date entries are replaced; click the ✓ to correct a time). plan.py renders weeks with live
+  (Bakken/Almgren/Ingebrigtsen, knowledge/base-to-specific-transition.md):
+  final 5 weeks before race week = "specific" (amber), race week green — and
+  the plan's `specific_phase` block rewrites those weeks' days automatically
+  (keyed by weeks-before-race-week; variant from race distance: <=6km 5k,
+  <=15km 10k, else half; the amber label covers exactly the weeks the
+  variant rewrites, and a close race simply truncates the sequence from the
+  front — the final-big-session week and taper always survive): the AM
+  sub-threshold machinery never changes, Thu PM becomes Jakob's 25x400m
+  drifting to race pace at 5-4 weeks out, Tue PM becomes Almgren's 3x3km
+  progressive 3 weeks out, the final big session (Almgren's 10x1km @ 100%)
+  lands 10-12 days before a weekend race, and race week is a written-out
+  taper at ~40% volume. The half variant (Almgren-verified) touches ONLY
+  Saturday: hills swap for 3x5km @ 91-95% progressive for 3 weeks — Tue/Thu
+  stay untouched. House rule: race-specific sessions are
+  DISTANCE-based at the real rep distances even though the base week is
+  time-converted — in the specific phase specificity beats physiological
+  control. Overlay days carry `"specific": am/pm/day` and the calendar boxes
+  that session amber (per AM/PM half on doubles days — Ben wants the scary
+  sessions visible in advance); the pager's week tabs turn amber when their
+  block holds specific weeks, with 🏁 on the race-week block. The race day cell is green-
+  tinted with a 🏁 flag and shows just the event name; its "+ Garmin" button
+  uploads a plain distance workout named after the event. Race results are
+  entered in the settings races table only. plan.py renders weeks with live
   paces, per-day overrides applied, and completion from synced runs.
   `scripts/gui.py` serves it at localhost:5001
   — always-on via `docker compose up -d --build`, hot-reloads on any edit;
@@ -126,7 +143,11 @@ When Ben asks for a check-in / coach review:
   Garmin name gets an AM/PM prefix, bookkeeping keys are "date:am"/":pm")
   — created workouts are remembered in data/created_workouts.json
   and get a "delete" button (DELETE /api/workout/<id>) so one-shot sessions
-  don't pile up in the Garmin library. The Workouts tab lists the whole Garmin
+  don't pile up in the Garmin library. The Workouts tab shows the workout
+  bank (plans/workout-bank.json — curated Ingebrigtsen/Almgren sessions in
+  plan shorthand, coach-maintained; GET /api/workout-bank annotates live
+  paces, POST /api/workout-bank/<id> pushes one to the Garmin library
+  unscheduled, execution notes in the row tooltip) above the whole Garmin
   workout library (GET /api/garmin-workouts: name, steps, est. time, created,
   scheduled date) with a delete button per row — view-and-delete only, no
   editing; paces, health and mileage in the Stats tab

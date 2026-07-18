@@ -46,15 +46,20 @@ def active_plan() -> str:
 
 # race-specific block per the knowledge base + Bakken/Almgren/Ingebrigtsen
 # practice: the final weeks before the race convert threshold work to race
-# pace; race week itself is its own phase
-SPECIFIC_WEEKS = 5  # weeks of "specific" before race week (6 highlighted total)
+# pace; race week itself is its own phase. When the plan carries
+# specific_phase overlays, the "specific" label follows the weeks the
+# variant actually rewrites (5k/10k build = 5 weeks, the Almgren HM
+# conversion = 3); this is the fallback for plans without overlays.
+SPECIFIC_WEEKS = 5
 
 
 def expand_template(p: dict, cfg: dict) -> list:
     """Generate the weeks of a repeating-week plan. Length comes from the
     config end_date and/or the auto-detected next race (whichever is later),
     falling back to the plan's default_weeks. The race day replaces its
-    template day and the weeks before it get specific/race-week phases."""
+    template day and the weeks before it get specific/race-week phases,
+    with their days rewritten from the plan's specific_phase overlays
+    (keyed by weeks-before-race-week; 5k/10k variant from race distance)."""
     start = date.fromisoformat(p["start_date"])
     race = next_race() or {}
     race_day = date.fromisoformat(race["date"]) if race.get("date") else None
@@ -67,23 +72,38 @@ def expand_template(p: dict, cfg: dict) -> list:
                  if race_day and race_day >= start else None)
 
     tmpl = p["week_template"]
+    # base->specific transition (knowledge/base-to-specific-transition.md):
+    # the specific_phase block swaps individual days in the final weeks so
+    # one session per week turns toward race pace while the rest of the
+    # identical base week keeps running
+    overlays = {}
+    if race_week and p.get("specific_phase"):
+        dist = float(race.get("distance_m") or 10000)
+        variant = "5k" if dist <= 6000 else "10k" if dist <= 15000 else "half"
+        overlays = p["specific_phase"].get(variant) or {}
+    spec_weeks = ({int(k) for k in overlays if k != "0"}
+                  or set(range(1, SPECIFIC_WEEKS + 1)))
     weeks = []
     for i in range(1, n + 1):
         phase = "base"
+        days = dict(tmpl["days"])
+        volume = tmpl.get("volume_km", 0)
         if race_week:
             if i == race_week:
                 phase = "race week"
-            elif race_week - SPECIFIC_WEEKS <= i < race_week:
+            elif (race_week - i) in spec_weeks:
                 phase = "specific"
+            ov = overlays.get(str(race_week - i))
+            if ov:
+                days.update({d: ov[d] for d in DAY_ORDER if d in ov})
+                volume = ov.get("volume_km", volume)
         weeks.append({"week": i, "phase": phase,
-                      "volume_km": tmpl.get("volume_km", 0),
-                      "days": dict(tmpl["days"])})
+                      "volume_km": volume, "days": days})
     if race_week and race_week <= n:
         km = float(race.get("distance_m") or 10000) / 1000
         weeks[race_week - 1]["days"][DAY_ORDER[race_day.weekday()]] = {
             "type": "race", "km": km,
-            "workout": f"{race.get('event') or f'{km:g}km RACE'} - {km:g}km, "
-                       "add the result from this cell after",
+            "workout": race.get("event") or f"{km:g}km RACE",
         }
     return weeks
 

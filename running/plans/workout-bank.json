@@ -1,0 +1,68 @@
+{
+  "note": "Verified Ingebrigtsen/Almgren sessions. Race-specific workouts are DISTANCE-based at the real rep distances (Ben's rule: in the specific phase, specificity beats physiological control - you go for it); only base threshold work is converted to time. Percent targets still come from the live anchor. Sources in knowledge/base-to-specific-transition.md.",
+  "workouts": [
+    {
+      "id": "jakob-4x6",
+      "name": "Jakob 4x6min threshold",
+      "tag": "base",
+      "spec": "wu, 4x6min @ 91-93% w/ 1min jog, cd",
+      "source": "COROS-verified Jakob AM session, done multiple mornings/week, often treadmill",
+      "elite": "4x6min building to threshold",
+      "note": "Base work stays time-based and controlled - judge it while carrying fatigue, never a race. The 5x6min in the plan is the same family."
+    },
+    {
+      "id": "jakob-400s-10k",
+      "name": "Jakob 25x400m at 10k pace",
+      "tag": "specific 10k",
+      "spec": "wu, 25x400m @ 99-101% w/ 30s jog, cd",
+      "source": "Jakob's weekly year-round session (16 -> 20 -> 25 reps over his career)",
+      "elite": "25x400m w/ 30s at ~10K+ pace, early-to-mid season",
+      "note": "Reach target pace by rep 4-6, then hold - no accelerating. The last reps get muscularly hard by themselves."
+    },
+    {
+      "id": "jakob-400s-5k",
+      "name": "Jakob 25x400m at 5k pace",
+      "tag": "specific 5k",
+      "spec": "wu, 25x400m @ 103-105% w/ 30s jog, cd",
+      "source": "Jakob's only publicly verified race-specific session: the same 400s drift down to 5K pace as racing approaches - no new workout, just faster targets",
+      "elite": "25x400m w/ 30s at ~5K pace, pre-racing",
+      "note": "Settle by rep 4-6, hold. Almgren's 5k comparison: 10x600m + 10x200m before a Stockholm DL 5000."
+    },
+    {
+      "id": "almgren-3x3km",
+      "name": "Almgren 3x3km progressive",
+      "tag": "specific 10k",
+      "spec": "wu, 3x3km @ 97-101% w/ 3min jog, cd",
+      "source": "COROS-verified pre-Valencia 10K sharpening workout, end of a ~170km week",
+      "elite": "3x3km w/ 3min: 8:00 / 7:52 / 7:43 (2:40 -> 2:34/km)",
+      "note": "Progressive by rep: start ~97%, finish ~101%."
+    },
+    {
+      "id": "almgren-10x1km",
+      "name": "Almgren 10x1km final check",
+      "tag": "specific 10k",
+      "spec": "wu, 10x1km @ 100% w/ 1min jog, cd",
+      "source": "COROS-verified final pre-race check before Valencia 10K",
+      "elite": "10x1km w/ 1min, avg 2:34/km",
+      "note": "The last big session, 10-12 days out. After this: controlled + easy only."
+    },
+    {
+      "id": "almgren-600s-200s",
+      "name": "Almgren 600s + 200s",
+      "tag": "specific 5k",
+      "spec": "wu, 10x600m @ 103-105% w/ 90s jog, 10x200m @ 110% w/ 60s jog, cd",
+      "source": "FloTrack-filmed pre-Stockholm-DL 5000m session (elite splits unpublished)",
+      "elite": "10x600m + 10x200m",
+      "note": "600s at ~5k effort, 200s keep speed and mechanics."
+    },
+    {
+      "id": "almgren-3x5km",
+      "name": "Almgren 3x5km progressive",
+      "tag": "specific half",
+      "spec": "wu, 3x5km @ 91-95% w/ 3min jog, cd",
+      "source": "Direct Almgren interview 3 weeks before the 2025 Valencia half (58:41): whole week kept, only Saturday hills swapped for this",
+      "elite": "3x5km on rolling roads: 14:43 / 14:25 / 14:12 (2:57 -> 2:50/km); recovery not published - 2-3min jog is the assumption",
+      "note": "Progressive by rep: controlled -> strong -> near-HM effort; only the final rep approaches race intensity, ~10 / ~6 / ~3.5 s/km off race pace. Scale by shortening reps (3x2km / 3x3km / 3x4km), never to time."
+    }
+  ]
+}

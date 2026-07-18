@@ -8,8 +8,10 @@
     "Lactate targets mapped to percent-of-10k-pace: 2.5 mmol -> 91-93% (sub-threshold), 3.5 mmol -> 95-97% (threshold), hills ~8 mmol -> hard by feel",
     "As written this is the full elite week (~10 sessions, ~7.5 h, ~88 km at current paces) - drop PM sessions first when trimming",
     "Threshold discipline is the whole point: 91-97% should feel controlled, never a race",
-    "Specific phase (amber, final 6 weeks before the race): keep the sub-threshold base but convert one threshold session per week to race-pace work - stepping stones every 10-14 days (e.g. 4-5x2km @ 100% w/ 3min jog, 8x1km @ 100%), final big session 10-14 days out with >=8km of work at 100% (Bakken/Almgren/Ingebrigtsen practice + knowledge base)",
-    "Race week (green): cut volume roughly in half, keep 2-3 short touches of race pace early in the week, very easy + strides the last 2 days",
+    "Specific phase (amber, final 5 weeks + race week): applied AUTOMATICALLY via specific_phase below - the AM sub-threshold machinery never changes; one session per week turns toward race pace (Almgren/Jakob verified progression, knowledge/base-to-specific-transition.md). Race-specific sessions are DISTANCE-based at the real rep distances (25x400m, 3x3km, 10x1km) - in the specific phase specificity beats physiological control; only base work is time-converted. 5 & 4 weeks out: the Thu PM session becomes Jakob's 25x400m drifting to race pace. 3 weeks out: Tue PM = Almgren's 3x3km progressive. 1 week out: Tue PM is the final big session 10-12 days before a weekend race (Almgren's 10x1km), then everything controlled",
+    "Race week (green): volume roughly halved, 2-3 short touches of race pace early in the week, very easy + strides the last 2 days",
+    "specific_phase keys are weeks before race week (1 = the week just before, 0 = race week); the variant is picked from the next race's distance (<=6km: 5k, <=15km: 10k, else half); listed days replace the template day, everything else stays the identical base week, and the amber 'specific' label covers exactly the weeks the variant rewrites. Overlay days carry \"specific\": am/pm/day - the GUI highlights that session amber in the calendar so the race-specific work stands out",
+    "Half marathon conversion (Almgren-verified, 2025 Valencia 58:41): Tue/Thu double threshold and the week stay UNCHANGED - only Saturday hills swap for the long progressive HM session (3x5km @ 91-95%, controlled -> strong -> near-HM effort; only the final rep approaches race intensity) for 3 weeks, shorter exposure 8 days out, race-week taper with HM-pace touches",
     "km figures per day are rough estimates at current paces, used only for the done-mark"
   ],
   "week_template": {
@@ -49,6 +51,95 @@
         "type": "long",
         "km": 12,
         "workout": "90min long run @ 60-70%"
+      }
+    }
+  },
+  "specific_phase": {
+    "10k": {
+      "5": {
+        "thu": { "type": "intervals", "km": 20, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 25x400m @ 97-99% w/ 30s jog, cd", "specific": "pm" }
+      },
+      "4": {
+        "thu": { "type": "intervals", "km": 20, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 25x400m @ 99-101% w/ 30s jog, cd", "specific": "pm" }
+      },
+      "3": {
+        "tue": { "type": "intervals", "km": 20, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 3x3km @ 97-101% w/ 3min jog, cd", "specific": "pm" }
+      },
+      "2": {
+        "thu": { "type": "intervals", "km": 20, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 25x400m @ 99-101% w/ 30s jog, cd", "specific": "pm" }
+      },
+      "1": {
+        "volume_km": 74,
+        "tue": { "type": "intervals", "km": 20, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 10x1km @ 100% w/ 1min jog, cd", "specific": "pm" },
+        "thu": { "type": "intervals", "km": 12, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: 30min easy" },
+        "sat": { "type": "intervals", "km": 8, "workout": "wu, 10x35s hill sprints w/ 70s jog, cd" },
+        "sun": { "type": "long", "km": 10, "workout": "75min long run @ 60-70%" }
+      },
+      "0": {
+        "volume_km": 36,
+        "mon": { "type": "easy", "km": 5, "workout": "30min easy + 4x100m strides" },
+        "tue": { "type": "intervals", "km": 6, "workout": "wu, 4x400m @ 100% w/ 90s jog, cd", "specific": "day" },
+        "wed": { "type": "easy", "km": 4, "workout": "30min easy" },
+        "thu": { "type": "easy", "km": 4, "workout": "20min easy + 4x100m strides" },
+        "fri": { "type": "off" },
+        "sat": { "type": "easy", "km": 3, "workout": "20min very easy + 4x100m strides" },
+        "sun": { "type": "easy", "km": 4, "workout": "30min easy" }
+      }
+    },
+    "5k": {
+      "5": {
+        "thu": { "type": "intervals", "km": 20, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 25x400m @ 99-101% w/ 30s jog, cd", "specific": "pm" }
+      },
+      "4": {
+        "thu": { "type": "intervals", "km": 20, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 25x400m @ 102-104% w/ 30s jog, cd", "specific": "pm" }
+      },
+      "3": {
+        "tue": { "type": "intervals", "km": 18, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 10x600m @ 103-105% w/ 90s jog, 10x200m @ 110% w/ 60s jog, cd", "specific": "pm" }
+      },
+      "2": {
+        "thu": { "type": "intervals", "km": 20, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 25x400m @ 102-104% w/ 30s jog, cd", "specific": "pm" }
+      },
+      "1": {
+        "volume_km": 74,
+        "tue": { "type": "intervals", "km": 20, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 25x400m @ 103-105% w/ 30s jog, cd", "specific": "pm" },
+        "thu": { "type": "intervals", "km": 12, "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: 30min easy" },
+        "sat": { "type": "intervals", "km": 8, "workout": "wu, 10x35s hill sprints w/ 70s jog, cd" },
+        "sun": { "type": "long", "km": 10, "workout": "75min long run @ 60-70%" }
+      },
+      "0": {
+        "volume_km": 31,
+        "mon": { "type": "easy", "km": 5, "workout": "30min easy + 4x100m strides" },
+        "tue": { "type": "intervals", "km": 6, "workout": "wu, 4x400m @ 104% w/ 90s jog, cd", "specific": "day" },
+        "wed": { "type": "easy", "km": 4, "workout": "30min easy" },
+        "thu": { "type": "easy", "km": 4, "workout": "20min easy + 4x100m strides" },
+        "fri": { "type": "off" },
+        "sat": { "type": "easy", "km": 3, "workout": "20min very easy + 4x100m strides" },
+        "sun": { "type": "easy", "km": 4, "workout": "30min easy" }
+      }
+    },
+    "half": {
+      "3": {
+        "volume_km": 97,
+        "sat": { "type": "intervals", "km": 23, "workout": "AM: wu, 3x5km @ 91-95% w/ 3min jog, cd; PM: 45min easy", "specific": "am" }
+      },
+      "2": {
+        "volume_km": 97,
+        "sat": { "type": "intervals", "km": 23, "workout": "AM: wu, 3x5km @ 91-95% w/ 3min jog, cd; PM: 45min easy", "specific": "am" }
+      },
+      "1": {
+        "volume_km": 86,
+        "sat": { "type": "intervals", "km": 14, "workout": "AM: wu, 2x3km @ 95% w/ 3min jog, cd; PM: 45min easy", "specific": "am" },
+        "sun": { "type": "long", "km": 10, "workout": "75min long run @ 60-70%" }
+      },
+      "0": {
+        "volume_km": 44,
+        "mon": { "type": "easy", "km": 5, "workout": "30min easy + 4x100m strides" },
+        "tue": { "type": "intervals", "km": 7, "workout": "wu, 3x1km @ 95% w/ 90s jog, cd", "specific": "day" },
+        "wed": { "type": "easy", "km": 4, "workout": "30min easy" },
+        "thu": { "type": "easy", "km": 4, "workout": "20min easy + 4x100m strides" },
+        "fri": { "type": "off" },
+        "sat": { "type": "easy", "km": 3, "workout": "20min very easy + 4x100m strides" },
+        "sun": { "type": "easy", "km": 4, "workout": "30min easy" }
       }
     }
   }

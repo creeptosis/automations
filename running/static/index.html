@@ -32,6 +32,15 @@
   /* phase highlights: specific work (amber) and race week (green) */
   .wkrow.spec, .wkrow.racewk { border-left: 3px solid #fbbf24; padding-left: 10px; }
   .wkrow.racewk { border-left-color: #22c55e; }
+  /* the swapped-in race-specific session gets its own amber box (per AM/PM
+     half on doubles days) - Ben wants to see it coming */
+  .spechl { background: #2a2313; border: 1px solid #6b5518; border-radius: 6px;
+            padding: 3px 6px 4px; margin: 2px 0 1px; }
+  .sess.spechl + .sess, .sess + .sess.spechl { border-top: none; }
+  /* pager tabs carrying specific/race weeks are amber so the phase is
+     clickable from anywhere in the program */
+  .pager button.phspec { border-color: #6b5518; color: #fbbf24; }
+  .pager button.phspec.sel { background: #fbbf24; border-color: #fbbf24; color: #0b0e12; }
   .phchip { border-radius: 4px; padding: 0 7px; font-weight: 600; font-size: 0.92em; }
   .phchip.spec { background: #2a2313; color: #fbbf24; border: 1px solid #6b5518; }
   .phchip.racewk { background: #12241a; color: #4ade80; border: 1px solid #1f4d33; }
@@ -90,8 +99,8 @@
   .wbtn:disabled { cursor: wait; }
   .wbtn.done { border-color: #1f4d33; color: #4ade80; }
   .wbtn.err { border-color: #7a2e2e; color: #fca5a5; }
-  /* state chips (✓ on Garmin, race result) live in the card; actions float
-     over it on hover so idle cards spend no space on buttons */
+  /* state chips (✓ on Garmin) live in the card; actions float over it on
+     hover so idle cards spend no space on buttons */
   .cell { position: relative; }
   .gstate { display: flex; gap: 4px; margin-top: auto; padding-top: 5px; flex-wrap: wrap; }
   .hovbar { position: absolute; left: 5px; right: 5px; bottom: 5px; display: none;
@@ -104,9 +113,6 @@
           padding: 5px 7px; min-height: 54px; resize: vertical; flex: 1; }
   .edta.sm { min-height: 36px; flex: initial; }
   .edlab { font-size: 0.78em; margin: 2px 0; }
-  .edin { width: 100%; box-sizing: border-box; background: #12161b; color: #e6e6e6;
-          border: 1px solid #2c333d; border-radius: 6px; font: inherit; font-size: 0.78em;
-          padding: 5px 7px; margin-bottom: 4px; }
   @media (max-width: 700px) {
     .wkgrid { grid-template-columns: 1fr; } .cell { min-height: 0; }
     .dowhead { display: none; } .dw { display: inline; }
@@ -324,6 +330,10 @@
   </div>
 </div>
 <div id="gwsview" style="display:none">
+  <div class="card actcard" style="margin-bottom:14px">
+    <div class="alhead">Workout bank <span class="sub2">— verified Ingebrigtsen / Almgren sessions at your paces · hover a row for the elite original + how to run it</span></div>
+    <table id="banktbl"></table>
+  </div>
   <div class="actsum" id="gwsum"></div>
   <div class="card actcard"><table id="gwtbl"></table></div>
 </div>
@@ -373,10 +383,6 @@ function dayButtons(w, d) {
   if (d.edited)
     acts.push(`<button class="wbtn" onclick="restoreDay('${d.date}')"
       title="undo the edit — back to the plan's original day">↺</button>`);
-  if (d.type === "race" && d.date <= DATA.today)
-    state.push(d.result
-      ? `<button class="wbtn done" onclick="raceForm('${d.date}')" title="recorded — click to correct">✓ ${d.result}</button>`
-      : `<button class="wbtn" onclick="raceForm('${d.date}')" title="record the finish time — it becomes the new pace anchor">result</button>`);
   if (d.date >= DATA.today && d.type !== "off") {
     const g = d.garmin || {};
     for (const s of (d.sessions ? ["am", "pm"] : ["day"])) {
@@ -415,12 +421,15 @@ function buildWeek(w) {
       return `<div class="cell off${today ? " today" : ""}" id="cell-${d.date}">${head}
         <span class="rest">rest</span>${dayButtons(w, d)}</div>`;
     const paces = s => s.replace(/\[([^\]]+)\]/g, '<span class="pace">$1</span>');
-    // doubles ("AM: ...; PM: ...") get one block per session with a chip
+    // doubles ("AM: ...; PM: ...") get one block per session with a chip;
+    // the race-specific session (d.specific: am/pm/day) is boxed amber
+    const SPT = ' title="race-specific session — this is the one to be ready for"';
+    const sp = s => d.specific === s;
     const sess = d.text.match(/^AM:\s*(.*?)\s*;\s*PM:\s*(.*)$/);
     const txt = sess
-      ? `<div class="sess"><span class="ampm">AM</span>${paces(sess[1])}</div>` +
-        `<div class="sess"><span class="ampm">PM</span>${paces(sess[2])}</div>`
-      : paces(d.text);
+      ? `<div class="sess${sp("am") ? " spechl" : ""}"${sp("am") ? SPT : ""}><span class="ampm">AM</span>${paces(sess[1])}</div>` +
+        `<div class="sess${sp("pm") ? " spechl" : ""}"${sp("pm") ? SPT : ""}><span class="ampm">PM</span>${paces(sess[2])}</div>`
+      : sp("day") ? `<div class="spechl"${SPT}>${paces(d.text)}</div>` : paces(d.text);
     const foot = [
       d.km ? d.km + " km" : "",
       d.est ? "~" + d.est : "",
@@ -472,9 +481,14 @@ function renderCal() {
   document.getElementById("pager").innerHTML =
     `<span class="pglabel">Week</span>` +
     `<button onclick="setPage(${page - 1})" ${page === 0 ? "disabled" : ""}>&lsaquo;</button>` +
-    chunks.map((c, i) =>
-      `<button class="${i === page ? "sel" : ""}${i === curBlock ? " cur" : ""}" onclick="setPage(${i})">` +
-      `${c[0].week}–${c[c.length - 1].week}</button>`).join("") +
+    chunks.map((c, i) => {
+      // phase-aware tabs: amber = block holds specific weeks, 🏁 = race week
+      const spec = c.some(w => w.phase !== "base");
+      const race = c.some(w => w.phase === "race week");
+      return `<button class="${i === page ? "sel" : ""}${i === curBlock ? " cur" : ""}${spec ? " phspec" : ""}"
+        ${spec ? 'title="specific phase — race-pace work in this block"' : ""}
+        onclick="setPage(${i})">${c[0].week}–${c[c.length - 1].week}${race ? " 🏁" : ""}</button>`;
+    }).join("") +
     `<button onclick="setPage(${page + 1})" ${page === chunks.length - 1 ? "disabled" : ""}>&rsaquo;</button>`;
   document.getElementById("cal").innerHTML = chunks[page].map(buildWeek).join("");
 }
@@ -547,34 +561,6 @@ function saveDay(date) {
 
 function restoreDay(date) {
   fetch("/api/day/" + date, { method: "DELETE" }).then(() => loadPlan());
-}
-
-function raceForm(date) {
-  const d = DAYS[date], cell = document.getElementById("cell-" + date);
-  cell.className = "cell race";
-  cell.innerHTML = `<div class="edlab">🏁 result${d.km ? ` — ${d.km} km` : ""}</div>
-    <input class="edin" id="rr-${date}-t" placeholder="time, e.g. 52:30 or 1:53:44">
-    <input class="edin" id="rr-${date}-e" placeholder="event name (optional)">
-    <div class="cellbtns">
-      <button class="wbtn" id="rr-${date}-b" onclick="saveResult('${date}')">save</button>
-      <button class="wbtn" onclick="renderCal()">cancel</button>
-    </div>`;
-  const t = document.getElementById(`rr-${date}-t`);
-  t.value = d.result || "";
-  t.focus();
-}
-
-function saveResult(date) {
-  const v = id => document.getElementById(id).value;
-  const btn = document.getElementById(`rr-${date}-b`);
-  btn.disabled = true; btn.textContent = "saving…";
-  fetch("/api/race-result", { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ date, time: v(`rr-${date}-t`), event: v(`rr-${date}-e`),
-                           distance_km: DAYS[date].km || undefined }) })
-    .then(r => r.json()).then(d => {
-      if (d.ok) { RACES = null; loadPlan(); }  // fresh race in config -> paces re-anchor everywhere
-      else { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = d.error || "failed"; }
-    }).catch(() => { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = "failed"; });
 }
 
 function renderPaces() {
@@ -843,7 +829,33 @@ function brkFilter(i) {
 
 function loadActs() { fetch("/api/activities").then(r => r.json()).then(a => { ACTS = a; renderActs(); }); }
 
-/* ---- workouts tab (Garmin library) ---- */
+/* ---- workouts tab: bank (curated sessions) + Garmin library ---- */
+let BANK = null;
+function loadBank() {
+  fetch("/api/workout-bank").then(r => r.json()).then(d => { BANK = d.workouts; renderBank(); });
+}
+
+function renderBank() {
+  if (!BANK) return;
+  const paces = s => esc(s).replace(/\[([^\]]+)\]/g, '<span class="pace">$1</span>');
+  document.getElementById("banktbl").innerHTML =
+    `<tr><th></th><th>workout</th><th>session</th><th></th></tr>` +
+    BANK.map(w => `<tr title="${esc(w.source)}\nElite original: ${esc(w.elite)}\n${esc(w.note)}">
+      <td><span class="phchip ${w.tag === "base" ? "anch" : "spec"}">${esc(w.tag)}</span></td>
+      <td>${esc(w.name)}</td>
+      <td class="aname">${paces(w.text)}</td>
+      <td class="n"><button class="wbtn" onclick="bankToGarmin(this,'${w.id}')">+ Garmin</button></td></tr>`).join("");
+}
+
+function bankToGarmin(btn, id) {
+  btn.disabled = true; btn.className = "wbtn"; btn.textContent = "creating…";
+  fetch("/api/workout-bank/" + id, { method: "POST" })
+    .then(r => r.json()).then(d => {
+      if (d.ok) { btn.className = "wbtn done"; btn.textContent = "✓ in library"; loadGws(); }
+      else { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = "failed — retry"; btn.title = d.error || ""; }
+    }).catch(() => { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = "failed — retry"; });
+}
+
 function loadGws() {
   document.getElementById("gwsum").textContent = "loading the Garmin workout library…";
   document.getElementById("gwtbl").innerHTML = "";
@@ -922,7 +934,7 @@ function setView(v) {
     if (!EFFORTS) loadEfforts();
   }
   if (v === "acts" && !ACTS) loadActs();
-  if (v === "gws" && !GWS) loadGws();
+  if (v === "gws") { if (!GWS) loadGws(); if (!BANK) loadBank(); }
   if (v === "settings" && !RACES) loadRaces();
 }
 
