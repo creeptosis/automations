@@ -21,6 +21,21 @@
   .banner.overdue { background: #2a1515; border-color: #7a2e2e; color: #fca5a5; }
   .banner small { display: block; color: #9aa4b0; margin-top: 4px; }
 
+  /* program + race settings */
+  .cfgrow { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .cfgrow input { background: #1e242c; border: 1px solid #2c333d; color: #e6e6e6;
+                  border-radius: 6px; padding: 4px 8px; font-size: 0.82em; color-scheme: dark; }
+  .cfgrow input[type=number] { width: 48px; }
+  .cfgrow .wbtn { font-size: 0.8em; padding: 4px 10px; }
+  .cfgap { margin-left: 14px; }
+
+  /* phase highlights: specific work (amber) and race week (green) */
+  .wkrow.spec, .wkrow.racewk { border-left: 3px solid #fbbf24; padding-left: 10px; }
+  .wkrow.racewk { border-left-color: #22c55e; }
+  .phchip { border-radius: 4px; padding: 0 7px; font-weight: 600; font-size: 0.92em; }
+  .phchip.spec { background: #2a2313; color: #fbbf24; border: 1px solid #6b5518; }
+  .phchip.racewk { background: #12241a; color: #4ade80; border: 1px solid #1f4d33; }
+
   /* pager + subtabs */
   .pager { display: flex; gap: 6px; margin-bottom: 12px; align-items: center; }
   .pglabel { color: #9aa4b0; font-size: 0.85em; margin-right: 4px; }
@@ -44,10 +59,14 @@
   /* only quality sessions carry color; easy days stay plain, off days are ghosts */
   .cell.tempo { border-left: 3px solid #fbbf24; }
   .cell.intervals { border-left: 3px solid #f87171; }
-  .cell.race { border-left: 3px solid #22c55e; }
+  /* race day - unmistakable: green tint + flag, unlike any training day */
+  .cell.race { border: 1px solid #1f4d33; border-left: 3px solid #22c55e; background: #10251a; }
+  .cell.race.today { border-color: #4da3ff; border-left-color: #22c55e; }
+  .cell.race .work { color: #86efac; font-weight: 600; }
+  .rflag { font-size: 0.95em; }
   .cell.long { border-left: 3px solid #a78bfa; }
-  .cell.off { background: transparent; border: 1px dashed #2c333d; position: relative; }
-  .cell.off .rest { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #5b6572; font-size: 0.8em; letter-spacing: 0.12em; }
+  .cell.off { background: transparent; border: 1px dashed #2c333d; }
+  .cell.off .rest { flex: 1; display: flex; align-items: center; justify-content: center; color: #5b6572; font-size: 0.8em; letter-spacing: 0.12em; }
   .mchip { background: #e6e6e6; color: #0b0e12; border-radius: 4px; padding: 0 6px; font-weight: 700; font-size: 0.78em; }
   .cellhead { display: flex; gap: 6px; align-items: baseline; margin-bottom: 5px; }
   .dnum { font-weight: 700; font-size: 0.95em; color: #cfd6dd; }
@@ -57,11 +76,43 @@
   .cellhead .st { margin-left: auto; font-weight: 700; font-size: 0.85em; }
   .st.ok { color: #4ade80; } .st.miss { color: #f87171; } .st.part { color: #fbbf24; }
   .work { font-size: 0.78em; line-height: 1.45; flex: 1; }
+  .sess { padding: 2px 0 3px; }
+  .sess + .sess { border-top: 1px solid #262c35; margin-top: 2px; padding-top: 5px; }
+  .ampm { display: inline-block; background: #2b3a4d; color: #9fc1e8; border-radius: 4px;
+          padding: 0 5px; font-size: 0.85em; font-weight: 700; letter-spacing: 0.04em; margin-right: 6px; }
   .pace { color: #7fd1ff; }
   .foot { color: #8a93a0; font-size: 0.72em; margin-top: 6px; }
+  .cellbtns { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+  .wbtn { background: none; border: 1px solid #2c333d; color: #8a93a0; border-radius: 5px;
+          padding: 2px 8px; font-size: 0.72em; line-height: 1.6; cursor: pointer;
+          text-decoration: none; white-space: nowrap; }
+  .wbtn:hover { border-color: #4da3ff; color: #4da3ff; }
+  .wbtn:disabled { cursor: wait; }
+  .wbtn.done { border-color: #1f4d33; color: #4ade80; }
+  .wbtn.err { border-color: #7a2e2e; color: #fca5a5; }
+  /* state chips (✓ on Garmin, race result) live in the card; actions float
+     over it on hover so idle cards spend no space on buttons */
+  .cell { position: relative; }
+  .gstate { display: flex; gap: 4px; margin-top: auto; padding-top: 5px; flex-wrap: wrap; }
+  .hovbar { position: absolute; left: 5px; right: 5px; bottom: 5px; display: none;
+            gap: 4px; flex-wrap: wrap; align-items: center; padding: 4px 5px;
+            background: rgba(17,20,24,0.94); border: 1px solid #2c333d; border-radius: 6px; }
+  .cell:hover .hovbar { display: flex; }
+  .echip { color: #fbbf24; font-size: 0.72em; }
+  .edta { width: 100%; box-sizing: border-box; background: #12161b; color: #e6e6e6;
+          border: 1px solid #2c333d; border-radius: 6px; font: inherit; font-size: 0.78em;
+          padding: 5px 7px; min-height: 54px; resize: vertical; flex: 1; }
+  .edta.sm { min-height: 36px; flex: initial; }
+  .edlab { font-size: 0.78em; margin: 2px 0; }
+  .edin { width: 100%; box-sizing: border-box; background: #12161b; color: #e6e6e6;
+          border: 1px solid #2c333d; border-radius: 6px; font: inherit; font-size: 0.78em;
+          padding: 5px 7px; margin-bottom: 4px; }
   @media (max-width: 700px) {
     .wkgrid { grid-template-columns: 1fr; } .cell { min-height: 0; }
     .dowhead { display: none; } .dw { display: inline; }
+    /* no hover on touch - actions inline instead of overlaid */
+    .hovbar { position: static; display: flex; background: none; border: none;
+              padding: 4px 0 0; }
   }
 
   /* stats tab */
@@ -126,7 +177,21 @@
   .actbar input { background: #1e242c; border: 1px solid #2c333d; color: #e6e6e6; border-radius: 6px; padding: 6px 10px; font-size: 0.85em; margin-left: auto; width: 160px; }
   .actbar input::placeholder { color: #5b6572; }
   .actsum { color: #9aa4b0; font-size: 0.85em; margin-bottom: 10px; }
-  .actcard { padding: 2px 12px; overflow-x: auto; }
+  #actbody { display: flex; gap: 14px; align-items: flex-start; }
+  .actcard { flex: 1; padding: 2px 12px; overflow-x: auto; }
+  .actbrk { flex: 0 0 260px; position: sticky; top: 64px; padding: 8px 14px 10px;
+            max-height: 78vh; overflow-y: auto; }
+  .brkrow { display: flex; gap: 10px; font-size: 0.85em; padding: 5px 0;
+            border-top: 1px solid #21262e; cursor: pointer; }
+  .brkrow:first-of-type { border-top: none; }
+  .brkrow:hover span:first-child { color: #4da3ff; }
+  .brkrow.on span:first-child { color: #4da3ff; font-weight: 600; }
+  .brkrow.sub { padding-left: 14px; border-top: none; }
+  .brkrow.sub span { color: #8a93a0; font-size: 0.94em; }
+  .brkrow.sub .brkn { font-weight: 400; }
+  .brkn { margin-left: auto; color: #7fd1ff; font-weight: 600; white-space: nowrap; }
+  @media (max-width: 900px) { #actbody { flex-direction: column; }
+    .actbrk { position: static; flex: none; width: auto; align-self: stretch; } }
   #acttbl { width: 100%; }
   #acttbl th { cursor: pointer; user-select: none; white-space: nowrap; }
   #acttbl th.on { color: #4da3ff; }
@@ -140,6 +205,9 @@
   .d4 { background: #2a1a10; color: #fb923c; }
   .d5 { background: #2a1515; color: #f87171; }
   .loadn { color: #8a93a0; font-size: 0.8em; margin-left: 6px; }
+  a.gwl { color: #7fd1ff; text-decoration: none; }
+  a.gwl:hover { text-decoration: underline; }
+  #gwtbl td.aname { color: #9aa4b0; font-size: 0.84em; }
 
   /* tips modal */
   .modalbg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 20; }
@@ -149,6 +217,24 @@
   .modal ul { margin: 0; padding-left: 18px; color: #cfd6dd; font-size: 0.9em; line-height: 1.6; }
   .modal li { margin-bottom: 8px; }
   .modal li::marker { color: #4da3ff; }
+  /* settings view: one card per section, room to grow */
+  .setcard { max-width: 780px; padding: 16px 22px 18px; margin-bottom: 14px; }
+  .sethead { font-weight: 600; font-size: 1.05em; margin-bottom: 4px; }
+  .msub { color: #9aa4b0; font-weight: 400; font-size: 0.8em; margin-left: 8px; }
+  #ryears { margin: 12px 0; }
+  .setbtns { margin-top: 14px; gap: 8px; }
+  .wbtn.big { font-size: 0.88em; padding: 6px 14px; }
+  #racetbl { width: 100%; }
+  #racetbl th { font-size: 0.82em; }
+  #racetbl td { padding: 5px 6px; border-top: none; font-size: 0.95em; }
+  #racetbl input { background: #12161b; border: 1px solid #2c333d; color: #e6e6e6;
+                   border-radius: 6px; padding: 7px 10px; font-size: 1em; width: 100%;
+                   box-sizing: border-box; color-scheme: dark; }
+  #racetbl .vd { color: #7fd1ff; font-weight: 600; white-space: nowrap; text-align: right; }
+  #racetbl .rx { color: #8a93a0; cursor: pointer; padding: 0 8px; font-size: 1.05em; }
+  #racetbl .rx:hover { color: #f87171; }
+  #racetbl .phchip { font-size: 0.78em; white-space: nowrap; }
+  .phchip.anch { background: #16283b; color: #7fd1ff; border: 1px solid #2c4a6e; }
 </style>
 </head>
 <body>
@@ -156,15 +242,24 @@
 <h1 id="title">Training plan</h1>
 <div class="sub" id="anchor"></div>
 <div class="tabs">
-  <button id="tab-brant" onclick="selectPlan('brant')">Brant</button>
-  <button id="tab-davis" onclick="selectPlan('davis')">Full-Spectrum</button>
+  <button id="tab-plan" onclick="setView('plan')">Plan</button>
   <button id="tab-stats" onclick="setView('stats')">Stats</button>
   <button id="tab-acts" onclick="setView('acts')">Activities</button>
+  <button id="tab-gws" onclick="setView('gws')">Workouts</button>
   <button id="syncbtn" onclick="doSync()">Sync Garmin</button>
+  <button id="setbtn" onclick="openSettings()" title="race history — the pace anchor data">⚙</button>
 </div>
 <div id="syncout"></div>
 <div class="banner" id="banner" style="display:none"></div>
 <div id="planview">
+  <div class="cfgrow">
+    <span class="pglabel">Program</span>
+    <input type="date" id="cf-start" title="start (snaps to Monday)">
+    <span class="pglabel">→</span>
+    <input type="date" id="cf-end" title="end — blank to follow the next race">
+    <button class="wbtn" id="cf-save" onclick="saveCfg()">save</button>
+    <span class="pglabel" id="cfginfo"></span>
+  </div>
   <div class="pager" id="pager"></div>
   <div class="dowhead"><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span></div>
   <div id="cal"></div>
@@ -205,6 +300,9 @@
 </div>
 <div id="actview" style="display:none">
   <div class="actbar">
+    <div class="pager" style="margin:0" id="f-kind">
+      <button data-v="all">All runs</button><button data-v="wo">Workouts</button>
+    </div>
     <div class="pager" style="margin:0" id="f-surface">
       <button data-v="all">All</button><button data-v="out">Outdoor</button><button data-v="in">Indoor</button>
     </div>
@@ -217,7 +315,17 @@
     <input id="f-q" placeholder="search name…">
   </div>
   <div class="actsum" id="actsum"></div>
-  <div class="card actcard"><table id="acttbl"></table></div>
+  <div id="actbody">
+    <div class="card actcard"><table id="acttbl"></table></div>
+    <div class="card actbrk">
+      <div class="alhead">Workout breakdown <span class="sub2">— within current filters · click to filter</span></div>
+      <div id="actbreak"></div>
+    </div>
+  </div>
+</div>
+<div id="gwsview" style="display:none">
+  <div class="actsum" id="gwsum"></div>
+  <div class="card actcard"><table id="gwtbl"></table></div>
 </div>
 <div id="tipsbg" class="modalbg" onclick="closeTips()" style="display:none">
   <div class="modal" onclick="event.stopPropagation()">
@@ -225,28 +333,72 @@
     <ul id="tipslist"></ul>
   </div>
 </div>
+<div id="setview" style="display:none">
+  <div class="card setcard">
+    <div class="sethead">Races <span class="msub">recent results anchor every pace · a future date with no time = your next race</span></div>
+    <div class="pager" id="ryears"></div>
+    <table id="racetbl"></table>
+    <div class="cellbtns setbtns">
+      <button class="wbtn big" onclick="addRace()">+ add race</button>
+      <button class="wbtn big" id="racesave" onclick="saveRaces()">save</button>
+      <span class="pglabel" id="raceerr"></span>
+    </div>
+  </div>
+  <!-- future settings sections: append more .setcard blocks here -->
+</div>
 </div>
 <script>
 const saved = JSON.parse(sessionStorage.getItem("view") || "{}");
-let DATA = null, STATS = null, EFFORTS = null, ACTS = null, planKey = saved.plan || null;
+let DATA = null, STATS = null, EFFORTS = null, ACTS = null, GWS = null, DAYS = {};
 let view = saved.view === "paces" ? "stats" : (saved.view || "plan");
 let stat = saved.stat || "fitness";
 let page = Number.isInteger(saved.page) ? saved.page : null;
-const af = Object.assign({ surface: "all", period: "all", effort: 0, q: "" }, saved.af || {});
+const af = Object.assign({ kind: "all", surface: "all", period: "all", effort: 0, q: "" }, saved.af || {});
 let asort = saved.asort || { key: "date", dir: -1 };
 const PER = 4;
 const MARK = { X: ["ok", "✓"], ".": ["miss", "✗"], "~": ["part", "~"], "-": ["", ""], upcoming: ["", ""] };
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-function saveState() { sessionStorage.setItem("view", JSON.stringify({ plan: planKey, view, page, stat, af, asort })); }
+function saveState() { sessionStorage.setItem("view", JSON.stringify({ view, page, stat, af, asort })); }
 
 function fmtPace(s) {
   const m = Math.floor(s / 60), sec = Math.round(s % 60);
   return sec === 60 ? `${m + 1}:00/km` : `${m}:${String(sec).padStart(2, "0")}/km`;
 }
 
+function dayButtons(w, d) {
+  // state chips render in the card; actions only exist in the hover overlay
+  const state = [];
+  const acts = [`<button class="wbtn" onclick="editDay('${d.date}')" title="edit this day">✎</button>`];
+  if (d.edited)
+    acts.push(`<button class="wbtn" onclick="restoreDay('${d.date}')"
+      title="undo the edit — back to the plan's original day">↺</button>`);
+  if (d.type === "race" && d.date <= DATA.today)
+    state.push(d.result
+      ? `<button class="wbtn done" onclick="raceForm('${d.date}')" title="recorded — click to correct">✓ ${d.result}</button>`
+      : `<button class="wbtn" onclick="raceForm('${d.date}')" title="record the finish time — it becomes the new pace anchor">result</button>`);
+  if (d.date >= DATA.today && d.type !== "off") {
+    const g = d.garmin || {};
+    for (const s of (d.sessions ? ["am", "pm"] : ["day"])) {
+      const tag = s === "day" ? "Garmin" : s.toUpperCase();
+      if (g[s]) {
+        state.push(`<a class="wbtn done" href="${g[s].url}" target="_blank"
+          title="on the Garmin calendar — ${esc(g[s].name)}">✓ ${tag}</a>`);
+        acts.push(`<button class="wbtn" onclick="deleteWorkout(this,${g[s].id})"
+          title="delete the ${tag} workout from the Garmin library + calendar">✕ ${tag}</button>`);
+      } else {
+        acts.push(`<button class="wbtn" title="push ${s === "day" ? "this session" : "the " + tag + " session"} to Garmin, scheduled on this date"
+          onclick="createWorkout(this,${w.week},'${d.day}','${s === "day" ? "" : s}')">+ ${tag}</button>`);
+      }
+    }
+  }
+  return (state.length ? `<div class="gstate">${state.join("")}</div>` : "") +
+         `<div class="hovbar">${acts.join("")}</div>`;
+}
+
 function buildWeek(w) {
   const cells = w.days.map(d => {
+    DAYS[d.date] = d;
     const [cls, sym] = MARK[d.status] || ["", ""];
     const today = d.date === DATA.today;
     const dnum = parseInt(d.date.slice(8), 10);
@@ -255,22 +407,61 @@ function buildWeek(w) {
       ? `<span class="mchip">1 ${mon}</span>`  // month change - make it pop
       : `<span class="dnum">${dnum}</span>${today ? `<span class="dmon">${mon}</span>` : ""}`;
     const head = `<div class="cellhead"><span class="dw">${d.day.toUpperCase()}</span>${datebit}` +
-      `${today ? ' <span class="tdy">TODAY</span>' : ""}<span class="st ${cls}">${sym}</span></div>`;
+      `${today ? ' <span class="tdy">TODAY</span>' : ""}` +
+      `${d.type === "race" ? ' <span class="rflag" title="race day">🏁</span>' : ""}` +
+      `${d.edited ? ' <span class="echip" title="edited day">✎</span>' : ""}` +
+      `<span class="st ${cls}">${sym}</span></div>`;
     if (d.type === "off")
-      return `<div class="cell off${today ? " today" : ""}">${head}<span class="rest">rest</span></div>`;
-    const txt = d.text.replace(/\[([^\]]+)\]/g, '<span class="pace">$1</span>');
+      return `<div class="cell off${today ? " today" : ""}" id="cell-${d.date}">${head}
+        <span class="rest">rest</span>${dayButtons(w, d)}</div>`;
+    const paces = s => s.replace(/\[([^\]]+)\]/g, '<span class="pace">$1</span>');
+    // doubles ("AM: ...; PM: ...") get one block per session with a chip
+    const sess = d.text.match(/^AM:\s*(.*?)\s*;\s*PM:\s*(.*)$/);
+    const txt = sess
+      ? `<div class="sess"><span class="ampm">AM</span>${paces(sess[1])}</div>` +
+        `<div class="sess"><span class="ampm">PM</span>${paces(sess[2])}</div>`
+      : paces(d.text);
     const foot = [
       d.km ? d.km + " km" : "",
       d.est ? "~" + d.est : "",
       d.actual_km > 0 ? "ran " + d.actual_km : "",
     ].filter(Boolean).join(" · ");
-    return `<div class="cell ${d.type}${today ? " today" : ""}">${head}
-      <div class="work">${txt}</div>${foot ? `<div class="foot">${foot}</div>` : ""}</div>`;
+    return `<div class="cell ${d.type}${today ? " today" : ""}" id="cell-${d.date}">${head}
+      <div class="work">${txt}</div>${foot ? `<div class="foot">${foot}</div>` : ""}${dayButtons(w, d)}</div>`;
   }).join("");
-  return `<div class="wkrow">
-    <div class="wkhead${w.week === DATA.current_week ? " cur" : ""}"><b>Week ${w.week}</b> · ${w.phase} ·
+  const phcls = w.phase === "specific" ? "spec" : w.phase === "race week" ? "racewk" : "";
+  const phase = phcls ? `<span class="phchip ${phcls}">${w.phase}</span>` : w.phase;
+  return `<div class="wkrow${phcls ? " " + phcls : ""}">
+    <div class="wkhead${w.week === DATA.current_week ? " cur" : ""}"><b>Week ${w.week}</b> · ${phase} ·
       ~${w.volume_km} km planned${w.actual_km ? `, ${w.actual_km} km run` : ""}</div>
     <div class="wkgrid">${cells}</div></div>`;
+}
+
+function fillCfg() {
+  const c = DATA.config || {}, race = DATA.next_race;
+  document.getElementById("cf-start").value = c.start_date || DATA.start_date || "";
+  document.getElementById("cf-end").value = c.end_date || "";
+  const bits = [`${DATA.weeks.length} weeks`];
+  if (race) {
+    const days = Math.round((new Date(race.date) - new Date(DATA.today)) / 864e5);
+    bits.push(`${race.event || "race"} in ${days} day${days === 1 ? "" : "s"}`);
+  } else {
+    bits.push("no upcoming race — add one in ⚙");
+  }
+  document.getElementById("cfginfo").textContent = "· " + bits.join(" · ");
+}
+
+function saveCfg() {
+  const v = id => document.getElementById(id).value;
+  const btn = document.getElementById("cf-save");
+  btn.disabled = true; btn.textContent = "saving…";
+  fetch("/api/plan-config", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ start_date: v("cf-start"), end_date: v("cf-end") }) })
+    .then(r => r.json()).then(d => {
+      btn.disabled = false; btn.textContent = "save";
+      if (d.ok) { page = null; loadPlan(); }
+      else { btn.className = "wbtn err"; btn.textContent = "failed"; btn.title = d.error || ""; }
+    }).catch(() => { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = "failed"; });
 }
 
 function renderCal() {
@@ -289,6 +480,102 @@ function renderCal() {
 }
 
 function setPage(p) { page = p; saveState(); renderCal(); window.scrollTo(0, 0); }
+
+function createWorkout(btn, week, day, session) {
+  btn.disabled = true; btn.className = "wbtn"; btn.textContent = "creating…";
+  fetch("/api/workout", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ week, day, session: session || undefined }) })
+    .then(r => r.json()).then(d => {
+      if (d.ok) { GWS = null; loadPlan(); }  // re-render: the cell now shows ✓ Garmin + delete
+      else { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = "failed — retry"; btn.title = d.error || ""; }
+    }).catch(() => { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = "failed — retry"; });
+}
+
+function deleteWorkout(btn, id) {
+  btn.disabled = true; btn.textContent = "deleting…";
+  fetch("/api/workout/" + id, { method: "DELETE" })
+    .then(r => r.json()).then(d => {
+      if (d.ok) { GWS = null; loadPlan(); }
+      else { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = "failed — retry"; btn.title = d.error || ""; }
+    }).catch(() => { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = "failed — retry"; });
+}
+
+const edCtl = date => `<div class="cellbtns">
+    <button class="wbtn" onclick="saveDay('${date}')">save</button>
+    <button class="wbtn" onclick="renderCal()">cancel</button>
+  </div>`;
+
+function editDay(date) {
+  const d = DAYS[date], cell = document.getElementById("cell-" + date);
+  cell.className = "cell";
+  if (d.sessions) {  // doubles: one field per session, edit either alone
+    cell.innerHTML = `<div class="edlab"><span class="ampm">AM</span></div>
+      <textarea class="edta sm" id="ed-${date}-am" placeholder="blank or rest = drop this session"></textarea>
+      <div class="edlab"><span class="ampm">PM</span></div>
+      <textarea class="edta sm" id="ed-${date}-pm" placeholder="blank or rest = drop this session"></textarea>
+      ${edCtl(date)}`;
+    document.getElementById(`ed-${date}-am`).value = d.sessions.am;
+    document.getElementById(`ed-${date}-pm`).value = d.sessions.pm;
+    document.getElementById(`ed-${date}-am`).focus();
+  } else {
+    cell.innerHTML = `<textarea class="edta" id="ed-${date}"
+        placeholder="e.g. 8km easy · 5x1km @ 100% w/ 2min jog · rest"></textarea>
+      ${edCtl(date)}`;
+    const ta = document.getElementById("ed-" + date);
+    ta.value = d.raw;
+    ta.focus(); ta.select();
+  }
+}
+
+function saveDay(date) {
+  let text;
+  if (DAYS[date].sessions) {
+    const val = s => document.getElementById(`ed-${date}-${s}`).value.trim();
+    const rest = v => !v || /^(rest|off|-)$/i.test(v);
+    const am = val("am"), pm = val("pm");
+    text = rest(am) && rest(pm) ? "rest"       // both dropped -> off day
+         : rest(pm) ? am                       // one session left -> plain day
+         : rest(am) ? pm
+         : `AM: ${am}; PM: ${pm}`;
+  } else {
+    text = document.getElementById("ed-" + date).value;
+  }
+  fetch("/api/day", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ date, text }) })
+    .then(r => r.json()).then(() => loadPlan());
+}
+
+function restoreDay(date) {
+  fetch("/api/day/" + date, { method: "DELETE" }).then(() => loadPlan());
+}
+
+function raceForm(date) {
+  const d = DAYS[date], cell = document.getElementById("cell-" + date);
+  cell.className = "cell race";
+  cell.innerHTML = `<div class="edlab">🏁 result${d.km ? ` — ${d.km} km` : ""}</div>
+    <input class="edin" id="rr-${date}-t" placeholder="time, e.g. 52:30 or 1:53:44">
+    <input class="edin" id="rr-${date}-e" placeholder="event name (optional)">
+    <div class="cellbtns">
+      <button class="wbtn" id="rr-${date}-b" onclick="saveResult('${date}')">save</button>
+      <button class="wbtn" onclick="renderCal()">cancel</button>
+    </div>`;
+  const t = document.getElementById(`rr-${date}-t`);
+  t.value = d.result || "";
+  t.focus();
+}
+
+function saveResult(date) {
+  const v = id => document.getElementById(id).value;
+  const btn = document.getElementById(`rr-${date}-b`);
+  btn.disabled = true; btn.textContent = "saving…";
+  fetch("/api/race-result", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ date, time: v(`rr-${date}-t`), event: v(`rr-${date}-e`),
+                           distance_km: DAYS[date].km || undefined }) })
+    .then(r => r.json()).then(d => {
+      if (d.ok) { RACES = null; loadPlan(); }  // fresh race in config -> paces re-anchor everywhere
+      else { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = d.error || "failed"; }
+    }).catch(() => { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = "failed"; });
+}
 
 function renderPaces() {
   document.getElementById("zones").innerHTML = DATA.legend.map(z =>
@@ -432,8 +719,12 @@ function setSort(k) {
   saveState(); renderActs();
 }
 
+// a "workout" = structured session, judged from the run's name
+const isWorkout = n => /\d+\s*x\s*\d+/.test(n) ||
+  /(tempo|threshold|fartlek|hill|interval|lt[12]|race|benchmark|progression)/i.test(n);
+
 function bindActFilters() {
-  for (const [id, key] of [["f-surface", "surface"], ["f-period", "period"], ["f-effort", "effort"]])
+  for (const [id, key] of [["f-kind", "kind"], ["f-surface", "surface"], ["f-period", "period"], ["f-effort", "effort"]])
     document.querySelectorAll(`#${id} button`).forEach(b =>
       b.onclick = () => { af[key] = key === "effort" ? +b.dataset.v : b.dataset.v; saveState(); renderActs(); });
   const q = document.getElementById("f-q");
@@ -443,7 +734,7 @@ function bindActFilters() {
 
 function renderActs() {
   if (!ACTS) return;
-  for (const [id, key] of [["f-surface", "surface"], ["f-period", "period"], ["f-effort", "effort"]])
+  for (const [id, key] of [["f-kind", "kind"], ["f-surface", "surface"], ["f-period", "period"], ["f-effort", "effort"]])
     document.querySelectorAll(`#${id} button`).forEach(b =>
       b.className = String(af[key]) === b.dataset.v ? "sel" : "");
 
@@ -451,6 +742,7 @@ function renderActs() {
   const cutoff = days ? new Date(Date.now() - days * 864e5) : null;
   const q = af.q.trim().toLowerCase();
   const rows = ACTS.activities.filter(a =>
+    (af.kind !== "wo" || isWorkout(a.name)) &&
     (af.surface === "all" || (af.surface === "in") === a.indoor) &&
     (!cutoff || new Date(a.date) >= cutoff) &&
     (!af.effort || a.effort === af.effort) &&
@@ -496,9 +788,107 @@ function renderActs() {
       <td class="n">${eff}</td></tr>`;
   }).join("");
   document.getElementById("acttbl").innerHTML = head + body;
+  renderBreakdown(rows);
+}
+
+/* workout counts, clustered: same session structure groups together
+   ("AM: 5x6 mins" + "LT1A: 5x6 mins" -> 5x6) with the variants listed under
+   the cluster, so Hills totals don't blur 2x10x35s into 3min reps */
+function clusterKey(n) {
+  const low = n.toLowerCase();
+  if (/hill/.test(low)) return "Hills";
+  const m = low.match(/(?:\d+\s*x\s*)+\d+(?:\.\d+)?\s*(?:mins?|s|m)?(?=[^\d]|$)/);
+  if (m) return m[0].replace(/\s+/g, "").replace(/mins?$/, "");
+  if (/tempo/.test(low)) return "Tempo";
+  if (/fartlek/.test(low)) return "Fartlek";
+  if (/easy/.test(low)) return "Easy";
+  return n;
+}
+
+let BRK = [];
+function renderBreakdown(rows) {
+  const clusters = {};
+  for (const a of rows) {
+    const name = a.name.replace(/[^\x20-\x7e]/g, "").replace(/\s+/g, " ").trim();
+    if (!name) continue;
+    const key = clusterKey(name);
+    const c = clusters[key] || (clusters[key] = { total: 0, variants: {} });
+    c.total++;
+    c.variants[name] = (c.variants[name] || 0) + 1;
+  }
+  BRK = [];
+  const q = af.q.trim().toLowerCase();
+  const html = Object.entries(clusters)
+    .sort((x, y) => y[1].total - x[1].total || (x[0] < y[0] ? -1 : 1))
+    .map(([key, c]) => {
+      const variants = Object.entries(c.variants).sort((x, y) => y[1] - x[1]);
+      const single = variants.length === 1;
+      const label = single ? variants[0][0] : key;  // lone variant: show its full name
+      const head = `<div class="brkrow${q && q === label.toLowerCase() ? " on" : ""}"
+        onclick="brkFilter(${BRK.push(label) - 1})"><span>${esc(label)}</span><span class="brkn">${c.total}×</span></div>`;
+      return head + (single ? "" : variants.map(([n, k]) =>
+        `<div class="brkrow sub${q && q === n.toLowerCase() ? " on" : ""}"
+          onclick="brkFilter(${BRK.push(n) - 1})"><span>${esc(n)}</span><span class="brkn">${k}×</span></div>`).join(""));
+    }).join("");
+  document.getElementById("actbreak").innerHTML =
+    html || `<div class="note">no runs match these filters</div>`;
+}
+
+function brkFilter(i) {
+  const n = BRK[i];
+  af.q = af.q.trim().toLowerCase() === n.toLowerCase() ? "" : n;
+  document.getElementById("f-q").value = af.q;
+  saveState(); renderActs();
 }
 
 function loadActs() { fetch("/api/activities").then(r => r.json()).then(a => { ACTS = a; renderActs(); }); }
+
+/* ---- workouts tab (Garmin library) ---- */
+function loadGws() {
+  document.getElementById("gwsum").textContent = "loading the Garmin workout library…";
+  document.getElementById("gwtbl").innerHTML = "";
+  fetch("/api/garmin-workouts").then(r => r.json()).then(d => { GWS = d; renderGws(); })
+    .catch(() => { GWS = { ok: false, error: "request failed" }; renderGws(); });
+}
+
+function renderGws() {
+  if (!GWS) return;
+  if (!GWS.ok) {
+    document.getElementById("gwsum").textContent = "couldn't load workouts — " + (GWS.error || "");
+    return;
+  }
+  const ws = GWS.workouts;
+  document.getElementById("gwsum").textContent =
+    ws.length ? `${ws.length} workout${ws.length === 1 ? "" : "s"} in the Garmin library` : "the Garmin library is empty";
+  document.getElementById("gwtbl").innerHTML = ws.length
+    ? `<tr><th>workout</th><th>steps</th><th class="n">~time</th><th class="n">created</th><th class="n">scheduled</th><th></th></tr>` +
+      ws.map(w => `<tr>
+        <td><a class="gwl" href="https://connect.garmin.com/app/workout/${w.id}?workoutType=${w.sport || "running"}" target="_blank">${esc(w.name)}</a>
+          ${w.sport && w.sport !== "running" ? `<span class="typechip">${esc(w.sport)}</span>` : ""}</td>
+        <td class="aname">${esc(w.description)}</td>
+        <td class="n">${w.est_min ? fmtDur(w.est_min) : "–"}</td>
+        <td class="n">${w.created ? fmtDate(w.created) : "–"}</td>
+        <td class="n">${w.scheduled ? fmtDate(w.scheduled.slice(0, 10)) +
+          (w.scheduled.length > 10 ? " " + w.scheduled.slice(11).toUpperCase() : "") : "–"}</td>
+        <td class="n">${w.locked
+          ? `<span class="pglabel" title="owned by a Garmin Coach / adaptive training plan — Garmin refuses to delete these via any app; it disappears only if that old plan is removed in Garmin Connect">🔒 Garmin plan</span>`
+          : `<button class="wbtn" onclick="deleteGw(this,${w.id})">delete</button>`}</td></tr>`).join("")
+    : "";
+}
+
+function deleteGw(btn, id) {
+  btn.disabled = true; btn.textContent = "deleting…";
+  fetch("/api/workout/" + id, { method: "DELETE" })
+    .then(r => r.json()).then(d => {
+      if (d.ok) { GWS.workouts = GWS.workouts.filter(w => w.id !== id); renderGws(); loadPlan(); }
+      else {
+        btn.disabled = false; btn.className = "wbtn err"; btn.textContent = "failed — retry";
+        btn.title = d.error || "";
+        // surface the reason where it can actually be read
+        document.getElementById("gwsum").textContent = "delete failed: " + (d.error || "unknown error");
+      }
+    }).catch(() => { btn.disabled = false; btn.className = "wbtn err"; btn.textContent = "failed — retry"; });
+}
 
 function loadStats() { fetch("/api/stats").then(r => r.json()).then(s => { STATS = s; renderStats(); }); }
 function loadEfforts() {
@@ -519,19 +909,84 @@ function setView(v) {
   document.getElementById("planview").style.display = v === "plan" ? "" : "none";
   document.getElementById("statsview").style.display = v === "stats" ? "" : "none";
   document.getElementById("actview").style.display = v === "acts" ? "" : "none";
-  for (const k of ["brant", "davis"])
-    document.getElementById("tab-" + k).className = (v === "plan" && planKey === k) ? "sel" : "";
+  document.getElementById("gwsview").style.display = v === "gws" ? "" : "none";
+  document.getElementById("setview").style.display = v === "settings" ? "" : "none";
+  document.getElementById("tab-plan").className = v === "plan" ? "sel" : "";
   document.getElementById("tab-stats").className = v === "stats" ? "sel" : "";
   document.getElementById("tab-acts").className = v === "acts" ? "sel" : "";
+  document.getElementById("tab-gws").className = v === "gws" ? "sel" : "";
+  document.getElementById("setbtn").className = v === "settings" ? "sel" : "";
   if (v === "stats") {
     setStat(stat);
     if (!STATS) loadStats();
     if (!EFFORTS) loadEfforts();
   }
   if (v === "acts" && !ACTS) loadActs();
+  if (v === "gws" && !GWS) loadGws();
+  if (v === "settings" && !RACES) loadRaces();
 }
 
-function selectPlan(key) { view = "plan"; loadPlan(key); }
+/* ---- settings view: races section (add future sections alongside) ---- */
+let RACES = null, RYEAR = "all";
+
+function openSettings() { setView("settings"); }
+
+function loadRaces() {
+  fetch("/api/races").then(r => r.json()).then(d => {
+    RACES = d.races;
+    RACES.sort((a, b) => b.date < a.date ? -1 : 1);  // newest first for editing
+    document.getElementById("raceerr").textContent = "";
+    renderRaces();
+  });
+}
+
+function raceChip(r) {
+  if (r.next) return `<span class="phchip racewk" title="the plan builds toward this race">next race</span>`;
+  if (r.upcoming) return `<span class="phchip spec" title="future race (not the nearest one)">upcoming</span>`;
+  if (r.anchor) return `<span class="phchip anch" title="this result anchors your current paces">anchor</span>`;
+  return "";
+}
+
+function renderRaces() {
+  const years = [...new Set(RACES.map(r => (r.date || "").slice(0, 4)).filter(Boolean))];
+  document.getElementById("ryears").innerHTML =
+    [["all", "All"], ...years.map(y => [y, y])].map(([v, lab]) =>
+      `<button class="${RYEAR === v ? "sel" : ""}" onclick="RYEAR='${v}';renderRaces()">${lab}</button>`).join("");
+  const shown = RACES.map((r, i) => ({ r, i }))
+    .filter(({ r }) => RYEAR === "all" || (r.date || "").startsWith(RYEAR));
+  const rows = shown.map(({ r, i }) => `<tr>
+    <td style="width:96px">${raceChip(r)}</td>
+    <td style="width:148px"><input type="date" value="${r.date}" oninput="RACES[${i}].date=this.value"></td>
+    <td><input value="${esc(r.event)}" placeholder="event" oninput="RACES[${i}].event=this.value"></td>
+    <td style="width:92px"><input type="number" value="${r.distance_m}" title="distance in meters"
+      oninput="RACES[${i}].distance_m=this.value"></td>
+    <td style="width:100px"><input value="${esc(r.time)}" placeholder="mm:ss"
+      title="finish time — leave blank for an upcoming race" oninput="RACES[${i}].time=this.value"></td>
+    <td class="vd" title="VDOT from this result">${r.vdot ?? ""}</td>
+    <td class="rx" onclick="RACES.splice(${i},1);renderRaces()" title="remove">✕</td></tr>`).join("");
+  document.getElementById("racetbl").innerHTML =
+    `<tr><th></th><th>date</th><th>event</th><th>meters</th><th>time</th><th class="n">VDOT</th><th></th></tr>` +
+    (rows || `<tr><td colspan="7" class="pglabel">no races in ${RYEAR}</td></tr>`);
+}
+
+function addRace() {
+  RYEAR = "all";
+  RACES.unshift({ event: "", date: DATA.today, distance_m: 10000, time: "" });
+  renderRaces();
+}
+
+function saveRaces() {
+  const btn = document.getElementById("racesave");
+  btn.disabled = true; btn.textContent = "saving…";
+  fetch("/api/races", { method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ races: RACES }) })
+    .then(r => r.json()).then(d => {
+      btn.disabled = false; btn.textContent = "save";
+      if (d.ok) { loadRaces(); loadPlan(); }  // chips + anchor may have changed
+      else document.getElementById("raceerr").textContent = d.error || "failed";
+    }).catch(() => { btn.disabled = false; btn.textContent = "save";
+      document.getElementById("raceerr").textContent = "request failed"; });
+}
 
 function openTips() {
   document.getElementById("tipslist").innerHTML = (DATA?.tips || []).map(t => `<li>${t}</li>`).join("");
@@ -540,9 +995,9 @@ function openTips() {
 function closeTips() { document.getElementById("tipsbg").style.display = "none"; }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeTips(); });
 
-function loadPlan(key) {
-  fetch(key ? "/api/plan/" + key : "/api/plan").then(r => r.json()).then(d => {
-    DATA = d; planKey = d.plan_key; saveState();
+function loadPlan() {
+  fetch("/api/plan").then(r => r.json()).then(d => {
+    DATA = d; DAYS = {}; saveState();
     document.getElementById("title").textContent = d.name;
     document.getElementById("anchor").textContent = "Anchor: " + d.anchor_short;
     const b = document.getElementById("banner");
@@ -550,7 +1005,7 @@ function loadPlan(key) {
     b.className = "banner " + d.reeval.status;
     b.innerHTML = `<b>PACE RE-EVALUATION: ${d.reeval.status.toUpperCase()}</b> — ${d.reeval.message}
       <small>Next coach check-in: ${d.next_checkin}</small>`;
-    renderCal(); renderPaces(); setView(view);
+    renderCal(); fillCfg(); renderPaces(); setView(view);
     const sc = sessionStorage.getItem("scroll");
     if (sc !== null) { sessionStorage.removeItem("scroll"); window.scrollTo(0, +sc); }
   });
@@ -561,7 +1016,7 @@ function doRecalc() {
   b.disabled = true; b.textContent = "Recalculating…";
   fetch("/api/paces/refresh", { method: "POST" }).then(r => r.json()).then(() => {
     STATS = null; EFFORTS = null;
-    loadPlan(planKey); loadStats(); loadEfforts();
+    loadPlan(); loadStats(); loadEfforts();
     b.textContent = "✓ Up to date · snapshot saved";
     setTimeout(() => { b.innerHTML = "&#8635; Recalculate paces"; b.disabled = false; }, 2000);
   }).catch(() => { b.innerHTML = "&#8635; Recalculate paces"; b.disabled = false; });
@@ -574,14 +1029,14 @@ function doSync() {
     out.textContent = d.output;
     btn.disabled = false; btn.textContent = "Sync Garmin";
     STATS = null; EFFORTS = null; ACTS = null;
-    loadPlan(planKey);
+    loadPlan();
     if (view === "stats") { loadStats(); loadEfforts(); }
     if (view === "acts") loadActs();
   }).catch(() => { btn.disabled = false; btn.textContent = "Sync Garmin"; out.textContent = "sync failed"; });
 }
 
 bindActFilters();
-loadPlan(planKey);
+loadPlan();
 
 // hot reload: poll the server's file-version stamp, reload in place when it changes
 let VER = null;

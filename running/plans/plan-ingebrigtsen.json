@@ -1,0 +1,55 @@
+{
+  "name": "Ingebrigtsen weekly (time-based)",
+  "start_date": "2026-07-06",
+  "default_weeks": 16,
+  "goal": "repeating weekly template - length set by the program dates in config.json",
+  "template": "The Ingebrigtsen double-threshold week converted from distance to time (the minutes the source athletes spend, not their km): 10km easy -> 45min, 20km long -> 90min, 10x1000m -> 10x3min, 5x2km -> 5x6min, 25x400m -> 25x66s, 20x219m hill -> 20x35s. Strength/core/gym sessions from the source are omitted. Every week is identical - edit days in the GUI to scale it down; edits live in plans/overrides.json.",
+  "notes": [
+    "Lactate targets mapped to percent-of-10k-pace: 2.5 mmol -> 91-93% (sub-threshold), 3.5 mmol -> 95-97% (threshold), hills ~8 mmol -> hard by feel",
+    "As written this is the full elite week (~10 sessions, ~7.5 h, ~88 km at current paces) - drop PM sessions first when trimming",
+    "Threshold discipline is the whole point: 91-97% should feel controlled, never a race",
+    "Specific phase (amber, final 6 weeks before the race): keep the sub-threshold base but convert one threshold session per week to race-pace work - stepping stones every 10-14 days (e.g. 4-5x2km @ 100% w/ 3min jog, 8x1km @ 100%), final big session 10-14 days out with >=8km of work at 100% (Bakken/Almgren/Ingebrigtsen practice + knowledge base)",
+    "Race week (green): cut volume roughly in half, keep 2-3 short touches of race pace early in the week, very easy + strides the last 2 days",
+    "km figures per day are rough estimates at current paces, used only for the done-mark"
+  ],
+  "week_template": {
+    "volume_km": 88,
+    "days": {
+      "mon": {
+        "type": "easy",
+        "km": 12,
+        "workout": "AM: 45min easy; PM: 45min easy + 5x100m strides"
+      },
+      "tue": {
+        "type": "intervals",
+        "km": 19,
+        "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 10x3min @ 95-97% w/ 1min jog, cd"
+      },
+      "wed": {
+        "type": "easy",
+        "km": 6,
+        "workout": "45min easy"
+      },
+      "thu": {
+        "type": "intervals",
+        "km": 19,
+        "workout": "AM: wu, 5x6min @ 91-93% w/ 1min jog, cd; PM: wu, 25x66s @ 95-97% w/ 30s jog, cd"
+      },
+      "fri": {
+        "type": "easy",
+        "km": 6,
+        "workout": "45min easy"
+      },
+      "sat": {
+        "type": "intervals",
+        "km": 14,
+        "workout": "AM: wu, 20x35s hill sprints w/ 70s jog, cd; PM: 45min easy"
+      },
+      "sun": {
+        "type": "long",
+        "km": 12,
+        "workout": "90min long run @ 60-70%"
+      }
+    }
+  }
+}

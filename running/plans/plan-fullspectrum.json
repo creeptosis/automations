@@ -2,7 +2,7 @@
   "name": "Full-Spectrum 10k (John Davis, RunningWritings) - as published",
   "start_date": "2026-07-06",
   "goal": "10k race (Saturday of week 16)",
-  "template": "As published: peak 120 km/wk with doubles. Displayed at FULL volume for reference - Ben executes the Brant plan; use this tab to compare workouts/paces.",
+  "template": "As published: peak 120 km/wk with doubles - written for far higher volume than Ben currently runs. Edit any day in the GUI to scale it to real life; edits live in plans/overrides.json and can be restored per day.",
   "notes": [
     "All percentages are relative to current 10k fitness - revise the estimate every ~4 weeks from workouts",
     "Warm-ups/cool-downs count toward mileage goals (2-3km wu + strides, 2-3km cd; less around double-T/special blocks)",

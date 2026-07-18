@@ -175,6 +175,8 @@ def config_races() -> list[dict]:
     """Races from config.json, parsed and sorted by date, with computed VDOT."""
     races = []
     for r in load_config().get("races", []):
+        if not str(r.get("time") or "").strip():
+            continue  # upcoming race - no result yet, nothing to anchor on
         try:
             dt = datetime.strptime(r["date"], "%Y-%m-%d")
             time_s = vdot.parse_time(str(r["time"]))

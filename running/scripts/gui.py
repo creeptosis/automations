@@ -2,7 +2,8 @@
 
 Serves the plan with concrete paces (from the current fitness anchor) and
 completion status (from synced Garmin runs). No database - everything is
-computed live from plans/plan.json + data/.
+computed live from plans/plan-fullspectrum.json (+ per-day edits in
+plans/overrides.json) + data/.
 
     python scripts/gui.py   ->  http://127.0.0.1:5001
 """
@@ -10,18 +11,20 @@ computed live from plans/plan.json + data/.
 import json
 import math
 import os
+import re
 import subprocess
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
-from flask import Flask, jsonify, redirect, send_from_directory
+from flask import Flask, jsonify, redirect, request, send_from_directory
 
 import analyze
 import percent as pctmod
 import plan as planmod
 import vdot as vdotmod
+import workout as workoutmod
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # project root
 app = Flask(__name__, static_folder=str(BASE_DIR / "static"))
@@ -116,6 +119,34 @@ def reeval_info() -> dict:
                        f"Next review from {due_date.isoformat()}."}
 
 
+# one-shot workouts pushed to Garmin from the calendar, keyed by ISO date -
+# remembered so the GUI can offer "delete from Garmin" after the page reloads
+CREATED_FILE = BASE_DIR / "data" / "created_workouts.json"
+
+
+def load_created() -> dict:
+    if CREATED_FILE.exists():
+        return json.loads(CREATED_FILE.read_text(encoding="utf-8"))
+    return {}
+
+
+def save_created(created: dict) -> None:
+    CREATED_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CREATED_FILE.write_text(json.dumps(created, indent=2, sort_keys=True) + "\n",
+                            encoding="utf-8")
+
+
+def raw_text(day: dict) -> str:
+    """The day as plan shorthand - what the inline editor prefills with."""
+    if day["type"] == "off":
+        return "rest"
+    if day.get("workout"):
+        return day["workout"]
+    if day.get("km"):
+        return f"{day['km']}km {day['type']}"
+    return ""
+
+
 def next_checkin(p: dict) -> str:
     start = date.fromisoformat(p["start_date"])
     d = start + timedelta(days=13)  # Sunday of week 2, then fortnightly
@@ -158,11 +189,15 @@ def api_plan(name=None):
     name = name or planmod.active_plan()
     if name not in planmod.PLAN_FILES:
         return jsonify({"error": f"unknown plan '{name}'"}), 404
-    p = planmod.load_plan(name)
+    p = planmod.apply_overrides(planmod.load_plan(name))
     notes = p.get("notes") or []
     tips = notes if isinstance(notes, list) else [notes]
     base, source = planmod.current_anchor()
     actuals = planmod.actual_km_by_date()
+    created = load_created()
+    results = {r["date"]: r["time"]
+               for r in json.loads((BASE_DIR / "config.json")
+                                   .read_text(encoding="utf-8")).get("races", [])}
 
     weeks = []
     for w in p["weeks"]:
@@ -176,6 +211,13 @@ def api_plan(name=None):
                 "type": day["type"],
                 "km": day.get("km", 0),
                 "text": planmod.describe(day, base),
+                "raw": raw_text(day),
+                "sessions": planmod.split_sessions(day),
+                "result": results.get(dates[d]) if day["type"] == "race" else None,
+                "edited": bool(day.get("_edited")),
+                "garmin": {"day": created.get(dates[d]),
+                           "am": created.get(dates[d] + ":am"),
+                           "pm": created.get(dates[d] + ":pm")},
                 "est": duration_estimate(day, base),
                 "status": planmod.status_mark(day, dates[d], actuals).strip() or "upcoming",
                 "actual_km": round(actuals.get(dates[d], 0.0), 1),
@@ -189,9 +231,9 @@ def api_plan(name=None):
         })
 
     return jsonify({
-        "plan_key": name,
-        "plans": list(planmod.PLAN_FILES),
         "name": p["name"],
+        "config": planmod.plan_config(),
+        "next_race": planmod.next_race(),
         "start_date": p["start_date"],
         "tips": tips,
         "anchor": source,
@@ -423,6 +465,246 @@ def api_activities():
         a["effort"] = lvl
         a["effort_label"] = EFFORT_LABELS[lvl - 1] if lvl else None
     return jsonify({"activities": acts, "athlete_max_hr": athlete_max, "rest_hr": rest_hr})
+
+
+@app.route("/api/workout", methods=["POST"])
+def api_workout():
+    """Create the day's session as a structured Garmin workout and schedule
+    it on that date. Body: {plan, week, day, session?} - session 'am'/'pm'
+    picks one half of a doubles day ('AM: ...; PM: ...'); the whole-day
+    string is never uploaded as one mashed workout. Quality days use the
+    plan's own workout string (workout.py grammar); plain easy/long days
+    become a single target-free step."""
+    req = request.get_json(force=True)
+    try:
+        p = planmod.apply_overrides(planmod.load_plan(req.get("plan")))
+        week_no = int(req["week"])
+        day_key = req["day"]
+        day = p["weeks"][week_no - 1]["days"][day_key]
+        day_date = planmod.week_dates(p, week_no)[day_key]
+        session = (req.get("session") or "").lower() or None
+    except (KeyError, IndexError, ValueError) as e:
+        return jsonify({"ok": False, "error": f"bad request: {e}"}), 400
+
+    spec = day.get("workout")
+    name = None
+    sessions = planmod.split_sessions(day)
+    if session:
+        if not sessions or session not in sessions:
+            return jsonify({"ok": False, "error": "no AM/PM sessions on this day"}), 400
+        spec = sessions[session]
+        # tag AM/PM so the day's two library entries are telling apart
+        name = f"{session.upper()} {workoutmod.auto_name(workoutmod.parse_spec(spec))}"
+    elif sessions:
+        return jsonify({"ok": False, "error": "doubles day - pass session 'am' or 'pm'"}), 400
+    if not spec:
+        if day["type"] in ("easy", "long") and day.get("km"):
+            spec = f"{day['km']}km {day['type']}"
+            name = f"{day['km']}km {day['type']}"
+        else:
+            return jsonify({"ok": False, "error": "no session on this day"}), 400
+    try:
+        r = workoutmod.create(spec, name=name, date_str=day_date)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    created = load_created()
+    key = f"{day_date}:{session}" if session else day_date
+    created[key] = {"id": r["id"], "name": r["name"], "url": r["url"]}
+    save_created(created)
+    return jsonify({"ok": True, **r})
+
+
+@app.route("/api/garmin-workouts")
+def api_garmin_workouts():
+    """The whole Garmin workout library for the Workouts tab, newest first.
+    Workouts created from the calendar carry their scheduled date."""
+    try:
+        raw = workoutmod.get_client().get_workouts(0, 200)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    scheduled = {v["id"]: day for day, v in load_created().items()}
+    outs = [{
+        "id": w["workoutId"],
+        "name": w.get("workoutName") or str(w["workoutId"]),
+        "description": w.get("description") or "",
+        "sport": (w.get("sportType") or {}).get("sportTypeKey"),
+        "created": (w.get("createdDate") or "")[:10],
+        "est_min": round(w["estimatedDurationInSecs"] / 60)
+                   if w.get("estimatedDurationInSecs") else None,
+        "scheduled": scheduled.get(w["workoutId"]),
+        # Garmin refuses to delete workouts owned by a (Garmin Coach /
+        # adaptive) training plan - flag them so the GUI doesn't offer it
+        "locked": bool(w.get("atpPlanId") or w.get("trainingPlanId")),
+    } for w in raw]
+    outs.sort(key=lambda w: w["created"], reverse=True)
+    return jsonify({"ok": True, "workouts": outs})
+
+
+@app.route("/api/workout/<int:wid>", methods=["DELETE"])
+def api_workout_delete(wid):
+    """Remove a one-shot workout from the Garmin library (and its calendar
+    schedule) once it's no longer needed, and forget it locally."""
+    try:
+        workoutmod.get_client().delete_workout(str(wid))
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    created = {k: v for k, v in load_created().items() if v.get("id") != wid}
+    save_created(created)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/plan-config", methods=["POST"])
+def api_plan_config():
+    """Update the program dates in config.json's plan block. The start date
+    snaps to its week's Monday; a blank end date clears it (the program then
+    runs to the auto-detected next race, or default_weeks). The next race
+    itself lives in the races list (settings modal), not here."""
+    req = request.get_json(force=True)
+    path = BASE_DIR / "config.json"
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    plan = cfg.setdefault("plan", {})
+    try:
+        if req.get("start_date"):
+            d = date.fromisoformat(req["start_date"])
+            plan["start_date"] = (d - timedelta(days=d.weekday())).isoformat()
+        if "end_date" in req:
+            if req["end_date"]:
+                plan["end_date"] = date.fromisoformat(req["end_date"]).isoformat()
+            else:
+                plan.pop("end_date", None)
+    except (ValueError, TypeError) as e:
+        return jsonify({"ok": False, "error": f"bad request: {e}"}), 400
+    if plan.get("end_date") and plan["end_date"] < plan.get("start_date", ""):
+        return jsonify({"ok": False, "error": "end date is before the start date"}), 400
+    path.write_text(dump_config(cfg), encoding="utf-8")
+    return jsonify({"ok": True, "plan": plan})
+
+
+def dump_config(cfg: dict) -> str:
+    """config.json stays hand-editable: normal 2-space indent, but each past
+    race keeps to one line the way Ben formats them."""
+    out = json.dumps(cfg, indent=2)
+    races = cfg.get("races")
+    if isinstance(races, list) and races:
+        compact = ",\n".join(
+            "    " + json.dumps(r, separators=(", ", ": ")) for r in races)
+        out = re.sub(r'"races": \[.*\n  \]',
+                     lambda m: '"races": [\n' + compact + "\n  ]", out, flags=re.S)
+    return out + "\n"
+
+
+@app.route("/api/races", methods=["GET", "PUT"])
+def api_races():
+    """The race history behind the pace anchor, editable from the GUI's
+    settings modal. PUT replaces the whole list (validated), so add / edit /
+    delete are all one operation - no hand-editing config.json."""
+    path = BASE_DIR / "config.json"
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    if request.method == "GET":
+        today = date.today().isoformat()
+        future = [r["date"] for r in cfg.get("races", []) if r.get("date", "") >= today]
+        nxt = min(future) if future else None
+        recent = [r for r in analyze.config_races()
+                  if (datetime.now() - r["dt"]).days <= analyze.RECENT_RACE_DAYS]
+        anchor = max(recent, key=lambda r: r["vdot"])["date"] if recent else None
+        out = []
+        for r in cfg.get("races", []):
+            e = dict(r)
+            if str(r.get("time") or "").strip():
+                try:
+                    e["vdot"] = round(vdotmod.vdot_from_race(
+                        float(r["distance_m"]), vdotmod.parse_time(str(r["time"]))), 1)
+                except (KeyError, ValueError, TypeError):
+                    pass
+            e["upcoming"] = r.get("date", "") >= today
+            e["next"] = r.get("date") == nxt and not str(r.get("time") or "").strip()
+            e["anchor"] = bool(anchor) and r.get("date") == anchor and bool(e.get("vdot"))
+            out.append(e)
+        return jsonify({"races": out})
+    races = []
+    try:
+        for r in request.get_json(force=True).get("races", []):
+            entry = {
+                "event": str(r.get("event") or "").strip() or "Race",
+                "date": date.fromisoformat(str(r["date"]).strip()).isoformat(),
+                "distance_m": int(r["distance_m"]),
+                "time": str(r["time"]).strip(),
+            }
+            if entry["distance_m"] <= 0:
+                raise ValueError(f"bad distance for {entry['event']}")
+            # no time = an upcoming race: it becomes "next race" on the plan
+            # and is skipped by the pace anchor until the result lands
+            if entry["time"] and not re.fullmatch(r"(\d+:)?[0-5]?\d:[0-5]\d", entry["time"]):
+                raise ValueError(f"bad time '{entry['time']}' - use mm:ss or h:mm:ss")
+            races.append(entry)
+    except (KeyError, ValueError, TypeError) as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    races.sort(key=lambda r: r["date"])
+    cfg["races"] = races
+    path.write_text(dump_config(cfg), encoding="utf-8")
+    return jsonify({"ok": True, "races": races})
+
+
+@app.route("/api/race-result", methods=["POST"])
+def api_race_result():
+    """Record a race result straight from the calendar's race-day cell.
+    Body: {date, time, distance_km?, event?}. Appends to config.json races
+    (replacing a same-date entry), so a recent result immediately becomes
+    the pace anchor - no hand-editing."""
+    req = request.get_json(force=True)
+    try:
+        day = date.fromisoformat(req["date"]).isoformat()
+    except (KeyError, ValueError) as e:
+        return jsonify({"ok": False, "error": f"bad request: {e}"}), 400
+    time_str = str(req.get("time") or "").strip()
+    if not re.fullmatch(r"(\d+:)?[0-5]?\d:[0-5]\d", time_str):
+        return jsonify({"ok": False, "error": "time must look like 52:30 or 1:53:44"}), 400
+    path = BASE_DIR / "config.json"
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    races = cfg.setdefault("races", [])
+    # fill the result into the planned entry for that date (keeps the event
+    # name/distance from settings); only create one if none exists
+    existing = next((r for r in races if r.get("date") == day), None)
+    try:
+        km = float(req.get("distance_km") or 0) or (
+            existing["distance_m"] / 1000 if existing else 10)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "bad distance"}), 400
+    entry = existing or {"event": "", "date": day, "distance_m": 0, "time": ""}
+    entry["event"] = (str(req.get("event") or "").strip()
+                      or entry["event"] or f"{km:g}km race")
+    entry["distance_m"] = int(round(km * 1000))
+    entry["time"] = time_str
+    if not existing:
+        races.append(entry)
+    races.sort(key=lambda r: r["date"])
+    path.write_text(dump_config(cfg), encoding="utf-8")
+    return jsonify({"ok": True, "entry": entry})
+
+
+@app.route("/api/day", methods=["POST"])
+def api_day_edit():
+    """Override one plan day. Body: {date, text} - text in plan shorthand;
+    'rest' (or blank) makes it an off day. Saved to plans/overrides.json."""
+    req = request.get_json(force=True)
+    try:
+        day_date = date.fromisoformat(req["date"]).isoformat()
+    except (KeyError, ValueError) as e:
+        return jsonify({"ok": False, "error": f"bad request: {e}"}), 400
+    overrides = planmod.load_overrides()
+    overrides[day_date] = planmod.day_from_text(str(req.get("text", "")))
+    planmod.save_overrides(overrides)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/day/<day_date>", methods=["DELETE"])
+def api_day_restore(day_date):
+    """Drop the override for a date - the day reverts to the plan's original."""
+    overrides = planmod.load_overrides()
+    if day_date in overrides:
+        del overrides[day_date]
+        planmod.save_overrides(overrides)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/sync", methods=["POST"])
