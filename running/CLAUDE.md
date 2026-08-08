@@ -74,10 +74,16 @@ When Ben asks for a check-in / coach review:
   /api/races returns these display fields; PUT /api/races saves the whole
   validated list and strips them). The races list serves double duty: entries with
   times are past results (recent ones anchor paces), and a future-dated
-  entry with a blank time IS the next race — auto-detected (earliest date
-  >= today, `plan.next_race()`), it sizes the program, phases the weeks and
-  injects the race day; after the race Ben fills the time into that entry in
-  settings (no in-calendar result entry — he removed it as clutter). All
+  entry with a blank time is a goal-race candidate: `plan.next_race()` uses
+  `plan.goal_race` in config.json (a date, set via the 🏁/"set goal" chips in
+  the settings Races card, POST /api/plan-config) when present, else
+  auto-detects the earliest future entry WITHOUT a result (a filled time is
+  a finished race and never the goal — it must not truncate the program).
+  The goal race sizes the program, phases the weeks and injects the race
+  day; after the race Ben fills the time into that entry in settings (no
+  in-calendar result entry — he removed it as clutter), which re-anchors
+  paces: the anchor is the MOST RECENT race within 90 days
+  (`analyze.anchor_race()`), not the best one. All
   writes keep races one-line formatted so the file stays hand-editable as a
   fallback.
   Plan JSONs in `plans/` are coach-maintained content, not user config.

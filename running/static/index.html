@@ -26,6 +26,8 @@
   .cfgrow input { background: #1e242c; border: 1px solid #2c333d; color: #e6e6e6;
                   border-radius: 6px; padding: 4px 8px; font-size: 0.82em; color-scheme: dark; }
   .cfgrow input[type=number] { width: 48px; }
+  .cfgrow select { background: #1e242c; border: 1px solid #2c333d; color: #e6e6e6;
+                   border-radius: 6px; padding: 4px 8px; font-size: 0.82em; }
   .cfgrow .wbtn { font-size: 0.8em; padding: 4px 10px; }
   .cfgap { margin-left: 14px; }
 
@@ -140,6 +142,37 @@
   .kv td:last-child { text-align: right; font-weight: 600; }
   .okdot { color: #4ade80; }
   .note { color: #8a93a0; font-size: 0.8em; margin-top: 14px; }
+
+  /* anchor bar — the race every pace range is built from */
+  .anchorbar { display: flex; align-items: center; gap: 14px; margin-bottom: 14px;
+    border-left: 3px solid #4da3ff; background: #141d29; padding: 12px 16px; }
+  .anchorbox { flex: 1 1 auto; min-width: 0; }
+  .anchorlab { color: #9aa4b0; font-size: 0.72em; text-transform: uppercase;
+    letter-spacing: 0.06em; }
+  .anchorrace { font-size: 1.18em; font-weight: 700; color: #e6edf3; margin-top: 2px; }
+  .anchorrace.inferred { color: #d8a657; }
+  .anchormeta { color: #7fd1ff; font-weight: 600; font-size: 0.9em; margin-top: 3px; }
+  .anchormeta .dim { color: #8a93a0; font-weight: 400; }
+  .anchorwhen { display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+    white-space: nowrap; }
+  .phwhen { color: #9aa4b0; font-size: 0.78em; }
+  .phwhen b { color: #e6edf3; }
+  .phnav { background: #232b35; border: 1px solid #39434f; color: #cfd7e0;
+    border-radius: 8px; font-size: 1.1em; line-height: 1; padding: 4px 11px;
+    cursor: pointer; }
+  .phnav:hover:not(:disabled) { background: #2c3644; }
+  .phnav:disabled { opacity: 0.32; cursor: default; }
+  .fitright { flex: 1 1 560px; min-width: 460px; display: flex;
+    flex-direction: column; gap: 14px; }
+  .fitrow { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+  .fitrow .card { flex: 1 1 320px; }
+  #wkcard { padding-bottom: 12px; }
+  #wktbl { width: 100%; }
+  #wktbl td { font-size: 0.86em; }
+  #wktbl .dcol { color: #9aa4b0; text-transform: uppercase; font-size: 0.78em;
+    white-space: nowrap; width: 42px; }
+  .goalchip { cursor: pointer; }
+  .phchip.spec.goalchip:hover { filter: brightness(1.35); }
 
   /* mileage viz */
   #mileview { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
@@ -262,8 +295,18 @@
     <span class="pglabel">Program</span>
     <input type="date" id="cf-start" title="start (snaps to Monday)">
     <span class="pglabel">→</span>
-    <input type="date" id="cf-end" title="end — blank to follow the next race">
+    <input type="date" id="cf-end" title="end — blank to follow the goal race">
     <button class="wbtn" id="cf-save" onclick="saveCfg()">save</button>
+    <span class="pglabel cfgap">Goal</span>
+    <select id="cf-goal" onchange="goalChange(this.value)" title="the race the plan builds toward"></select>
+    <button class="wbtn" id="gr-del" onclick="delGoal()" title="remove this race from the list" style="display:none">✕</button>
+    <span id="graddbox" style="display:none">
+      <input id="gr-name" placeholder="event">
+      <input type="date" id="gr-date">
+      <input type="number" id="gr-dist" value="10000" title="distance in meters" style="width:76px">
+      <button class="wbtn" onclick="addGoal()">add</button>
+      <span class="pglabel" id="grerr"></span>
+    </span>
     <span class="pglabel" id="cfginfo"></span>
   </div>
   <div class="pager" id="pager"></div>
@@ -280,13 +323,30 @@
     <button class="info" onclick="openTips()" title="plan tips">i</button>
   </div>
   <div id="fitview">
+    <div class="anchorbar card" id="anchorbar">
+      <button class="phnav" id="ph-prev" onclick="stepPace(-1)" title="earlier calculation">&#8249;</button>
+      <div class="anchorbox">
+        <div class="anchorlab">Pace ranges anchored to</div>
+        <div class="anchorrace" id="anchorrace"></div>
+        <div class="anchormeta" id="anchormeta"></div>
+      </div>
+      <div class="anchorwhen">
+        <button class="phnav" id="ph-next" onclick="stepPace(1)" title="later calculation">&#8250;</button>
+        <div class="phwhen" id="ph-when"></div>
+      </div>
+    </div>
     <div class="pacegrid">
       <div class="card"><table id="zones"></table></div>
-      <div>
-        <div class="card" style="margin-bottom:14px"><table class="kv" id="anchortbl"></table></div>
-        <div class="card"><table class="kv" id="healthtbl"></table></div>
+      <div class="fitright">
+        <div class="card" id="wkcard">
+          <div class="alhead">Ingebrigtsen week at this anchor <span class="sub2" id="wksub"></span></div>
+          <table id="wktbl"></table>
+        </div>
+        <div class="fitrow">
+          <div class="card"><table class="kv" id="healthtbl"></table></div>
+          <div class="card"><table id="effortstbl"></table></div>
+        </div>
       </div>
-      <div class="card"><table id="effortstbl"></table></div>
     </div>
     <div class="note" id="pacenote"></div>
   </div>
@@ -345,7 +405,7 @@
 </div>
 <div id="setview" style="display:none">
   <div class="card setcard">
-    <div class="sethead">Races <span class="msub">recent results anchor every pace · a future date with no time = your next race</span></div>
+    <div class="sethead">Races <span class="msub">recent results anchor every pace · 🏁 marks the goal race the plan builds toward — click "set goal" to change it</span></div>
     <div class="pager" id="ryears"></div>
     <table id="racetbl"></table>
     <div class="cellbtns setbtns">
@@ -360,6 +420,7 @@
 <script>
 const saved = JSON.parse(sessionStorage.getItem("view") || "{}");
 let DATA = null, STATS = null, EFFORTS = null, ACTS = null, GWS = null, DAYS = {};
+let PHIST = null, phIdx = 0;
 let view = saved.view === "paces" ? "stats" : (saved.view || "plan");
 let stat = saved.stat || "fitness";
 let page = Number.isInteger(saved.page) ? saved.page : null;
@@ -450,14 +511,49 @@ function fillCfg() {
   const c = DATA.config || {}, race = DATA.next_race;
   document.getElementById("cf-start").value = c.start_date || DATA.start_date || "";
   document.getElementById("cf-end").value = c.end_date || "";
+
+  const opts = DATA.race_options || [];
+  document.getElementById("cf-goal").innerHTML =
+    `<option value="">auto — earliest upcoming</option>` +
+    opts.map(o => `<option value="${o.date}">🏁 ${esc(o.event)} · ${o.date}</option>`).join("") +
+    `<option value="+">+ new race…</option>`;
+  document.getElementById("cf-goal").value = DATA.goal_set && race ? race.date : "";
+  document.getElementById("gr-del").style.display = race ? "" : "none";
+  document.getElementById("graddbox").style.display = "none";
+
   const bits = [`${DATA.weeks.length} weeks`];
   if (race) {
     const days = Math.round((new Date(race.date) - new Date(DATA.today)) / 864e5);
     bits.push(`${race.event || "race"} in ${days} day${days === 1 ? "" : "s"}`);
   } else {
-    bits.push("no upcoming race — add one in ⚙");
+    bits.push("no goal race — pick or add one");
   }
   document.getElementById("cfginfo").textContent = "· " + bits.join(" · ");
+}
+
+function goalChange(v) {
+  if (v === "+") {
+    document.getElementById("graddbox").style.display = "";
+    document.getElementById("gr-name").focus();
+    return;
+  }
+  setGoal(v);  // a race date pins it; "" returns to auto-detect
+}
+
+function addGoal() {
+  const v = id => document.getElementById(id).value;
+  fetch("/api/race", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ event: v("gr-name"), date: v("gr-date"), distance_m: v("gr-dist") }) })
+    .then(r => r.json()).then(d => {
+      if (d.ok) { page = null; loadPlan(); loadRaces(); }
+      else document.getElementById("grerr").textContent = d.error || "failed";
+    });
+}
+
+function delGoal() {
+  if (!DATA.next_race) return;
+  fetch("/api/race/" + DATA.next_race.date, { method: "DELETE" })
+    .then(r => r.json()).then(d => { if (d.ok) { page = null; loadPlan(); loadRaces(); } });
 }
 
 function saveCfg() {
@@ -563,15 +659,63 @@ function restoreDay(date) {
   fetch("/api/day/" + date, { method: "DELETE" }).then(() => loadPlan());
 }
 
-function renderPaces() {
-  document.getElementById("zones").innerHTML = DATA.legend.map(z =>
+function loadPaceHistory() {
+  fetch("/api/paces/history").then(r => r.json()).then(h => {
+    PHIST = h;
+    phIdx = h.entries.findIndex(e => e.current);  // start on the live anchor
+    if (phIdx < 0) phIdx = h.entries.length - 1;
+    renderPaceAt();
+  });
+}
+
+// render the zone table + anchor bar for the selected anchor race
+function renderPaceAt() {
+  if (!PHIST || !PHIST.entries.length) return;
+  if (phIdx < 0) phIdx = 0;
+  if (phIdx > PHIST.entries.length - 1) phIdx = PHIST.entries.length - 1;
+  const e = PHIST.entries[phIdx];
+
+  document.getElementById("zones").innerHTML = e.legend.map(z =>
     `<tr class="${z.pct === '100%' ? 'race' : ''}">
        <td>${z.label}</td><td class="pct">${z.pct}</td><td class="zpace">${z.pace}</td></tr>`).join("");
-  document.getElementById("anchortbl").innerHTML = DATA.anchor_rows.map(r =>
-    `<tr><td>${r.k}</td><td class="${r.k.startsWith('Base pace') ? 'zpace' : ''}">${r.v}</td></tr>`).join("");
-  const step = (DATA.base_pace_s_per_km / 100).toFixed(1);
+
+  const race = document.getElementById("anchorrace");
+  race.className = "anchorrace" + (e.inferred ? " inferred" : "");
+  race.textContent = e.inferred ? "Inferred from training"
+    : e.race + " · " + e.when;
+  const meta = [];
+  if (e.result) meta.push(e.result);
+  if (e.vdot) meta.push("VDOT " + e.vdot);
+  if (e.tenk) meta.push('<span class="dim">10k eq</span> ' + e.tenk);
+  meta.push('<span class="dim">base</span> ' + e.base_pace);
+  document.getElementById("anchormeta").innerHTML = meta.join(" · ");
+
+  const last = PHIST.entries.length - 1;
+  const tag = e.current ? "<b>current anchor</b>"
+    : `if anchored here · race ${phIdx + 1} of ${PHIST.entries.length}`;
+  document.getElementById("ph-when").innerHTML = tag;
+  document.getElementById("ph-prev").disabled = phIdx === 0;
+  document.getElementById("ph-next").disabled = phIdx === last;
+
+  const wk = e.week || [];
+  document.getElementById("wkcard").style.display = wk.length ? "" : "none";
+  document.getElementById("wksub").textContent = e.inferred
+    ? "— paces from inferred fitness" : `— paces from ${e.race} (${e.result})`;
+  document.getElementById("wktbl").innerHTML = wk.map(s =>
+    `<tr><td class="dcol">${s.day}</td><td>${
+      s.text.replace(/; PM:/, "<br>PM:")
+            .replace(/\[([^\]]+)\]/g, '<span class="zpace">[$1]</span>')
+    }</td></tr>`).join("");
+
+  const step = (e.base_pace_s_per_km / 100).toFixed(1);
   document.getElementById("pacenote").textContent =
     `100% = 10k pace · every 1% ≈ ${step} s/km · above 100% is faster, below is slower`;
+}
+
+function stepPace(d) { phIdx += d; renderPaceAt(); }
+
+function renderPaces() {
+  if (PHIST) renderPaceAt(); else loadPaceHistory();
 }
 
 function renderStats() {
@@ -953,10 +1097,21 @@ function loadRaces() {
 }
 
 function raceChip(r) {
-  if (r.next) return `<span class="phchip racewk" title="the plan builds toward this race">next race</span>`;
-  if (r.upcoming) return `<span class="phchip spec" title="future race (not the nearest one)">upcoming</span>`;
+  if (r.next) return `<span class="phchip racewk goalchip" onclick="setGoal('')"
+    title="the plan builds toward this race${r.goal_set ? " (your pick — click to go back to auto)" : " (auto: earliest without a result)"}">🏁 goal race</span>`;
+  if (r.upcoming) return `<span class="phchip spec goalchip" onclick="setGoal('${r.date}')"
+    title="future race — click to make it the goal the plan builds toward">set goal</span>`;
   if (r.anchor) return `<span class="phchip anch" title="this result anchors your current paces">anchor</span>`;
   return "";
+}
+
+function setGoal(d) {
+  fetch("/api/plan-config", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ goal_race: d }) })
+    .then(r => r.json()).then(resp => {
+      if (resp.ok) { PHIST = null; loadRaces(); loadPlan(); }
+      else document.getElementById("raceerr").textContent = resp.error || "failed";
+    });
 }
 
 function renderRaces() {
@@ -994,7 +1149,7 @@ function saveRaces() {
     body: JSON.stringify({ races: RACES }) })
     .then(r => r.json()).then(d => {
       btn.disabled = false; btn.textContent = "save";
-      if (d.ok) { loadRaces(); loadPlan(); }  // chips + anchor may have changed
+      if (d.ok) { PHIST = null; loadRaces(); loadPlan(); }  // chips + anchor may have changed
       else document.getElementById("raceerr").textContent = d.error || "failed";
     }).catch(() => { btn.disabled = false; btn.textContent = "save";
       document.getElementById("raceerr").textContent = "request failed"; });
@@ -1027,7 +1182,7 @@ function doRecalc() {
   const b = document.getElementById("recalc");
   b.disabled = true; b.textContent = "Recalculating…";
   fetch("/api/paces/refresh", { method: "POST" }).then(r => r.json()).then(() => {
-    STATS = null; EFFORTS = null;
+    STATS = null; EFFORTS = null; PHIST = null;
     loadPlan(); loadStats(); loadEfforts();
     b.textContent = "✓ Up to date · snapshot saved";
     setTimeout(() => { b.innerHTML = "&#8635; Recalculate paces"; b.disabled = false; }, 2000);
@@ -1040,7 +1195,7 @@ function doSync() {
   fetch("/api/sync", { method: "POST" }).then(r => r.json()).then(d => {
     out.textContent = d.output;
     btn.disabled = false; btn.textContent = "Sync Garmin";
-    STATS = null; EFFORTS = null; ACTS = null;
+    STATS = null; EFFORTS = null; ACTS = null; PHIST = null;
     loadPlan();
     if (view === "stats") { loadStats(); loadEfforts(); }
     if (view === "acts") loadActs();

@@ -22,6 +22,7 @@
     {"event": "KLSCM 10km", "date": "2025-10-04", "distance_m": 10000, "time": "50:59"},
     {"event": "KL 10km", "date": "2026-02-01", "distance_m": 10000, "time": "53:59"},
     {"event": "5k race (short course)", "date": "2026-05-24", "distance_m": 4441, "time": "22:48"},
+    {"event": "Putrajaya 5k", "date": "2026-08-08", "distance_m": 5030, "time": "26:39"},
     {"event": "KLSCM 10km", "date": "2026-10-03", "distance_m": 10000, "time": ""}
   ]
 }

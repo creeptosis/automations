@@ -38,15 +38,11 @@ def derive_vdot(args) -> tuple[float, str]:
     # fall back to config races, then synced data
     import analyze
 
-    recent_races = [
-        r for r in analyze.config_races()
-        if (datetime.now() - r["dt"]).days <= analyze.RECENT_RACE_DAYS
-    ]
-    if recent_races:
-        best = max(recent_races, key=lambda r: r["vdot"])
-        return best["vdot"], (
-            f"race: {best['event']} on {best['dt'].date()}, "
-            f"{int(best['distance_m'])}m in {vdot.time_str(best['time_s'])}"
+    anchor = analyze.anchor_race()  # most recent race always re-anchors
+    if anchor:
+        return anchor["vdot"], (
+            f"race: {anchor['event']} on {anchor['dt'].date()}, "
+            f"{int(anchor['distance_m'])}m in {vdot.time_str(anchor['time_s'])}"
         )
 
     try:

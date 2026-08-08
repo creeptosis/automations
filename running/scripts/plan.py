@@ -122,13 +122,21 @@ def load_plan(name: str | None = None) -> dict:
 
 
 def next_race() -> dict | None:
-    """The next race, auto-detected from config.json's races list: the
-    earliest entry dated today or later (add the upcoming race in the GUI's
-    settings modal; its result gets filled in from the race-day cell)."""
+    """The race the plan builds toward. plan.goal_race in config.json (a
+    date, picked from the settings Races card) selects it explicitly;
+    otherwise auto-detect: the earliest FUTURE entry still missing a result.
+    A result on today's date is a finished race, never the goal - it must
+    not truncate the program (the Putrajaya bug)."""
+    cfg = json.loads((BASE_DIR / "config.json").read_text(encoding="utf-8"))
     today = date.today().isoformat()
-    upcoming = [r for r in json.loads((BASE_DIR / "config.json")
-                                      .read_text(encoding="utf-8")).get("races", [])
-                if r.get("date", "") >= today]
+    goal = (cfg.get("plan") or {}).get("goal_race")
+    upcoming = [r for r in cfg.get("races", [])
+                if r.get("date", "") >= today
+                and not str(r.get("time") or "").strip()]
+    if goal:
+        picked = [r for r in upcoming if r.get("date") == goal]
+        if picked:
+            return picked[0]  # explicit selection; past/filled -> auto again
     return min(upcoming, key=lambda r: r["date"]) if upcoming else None
 
 

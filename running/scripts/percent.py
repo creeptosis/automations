@@ -51,7 +51,8 @@ def pace_at_percent(base_s_per_km: float, pct: float) -> float:
 
 
 def fmt(sec_per_km: float) -> str:
-    return f"{int(sec_per_km // 60)}:{int(round(sec_per_km % 60)):02d}/km"
+    s = int(round(sec_per_km))  # round whole seconds first so 359.6 -> 6:00, not 5:60
+    return f"{s // 60}:{s % 60:02d}/km"
 
 
 def derive_base(args) -> tuple[float, str]:

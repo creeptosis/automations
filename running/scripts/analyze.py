@@ -191,6 +191,15 @@ def config_races() -> list[dict]:
     return sorted(races, key=lambda x: x["dt"])
 
 
+def anchor_race() -> dict | None:
+    """The race current paces anchor to: the MOST RECENT result within the
+    window. House rule: a new race always re-anchors, even if slower -
+    paces follow measured current fitness, not the best day on record."""
+    recent = [r for r in config_races()
+              if (datetime.now() - r["dt"]).days <= RECENT_RACE_DAYS]
+    return recent[-1] if recent else None
+
+
 def garmin_predictions(physio: dict) -> dict:
     rp = physio.get("race_predictions")
     if isinstance(rp, list) and rp:

@@ -54,17 +54,20 @@ def build_legend(base: float) -> list:
 
 
 def anchor_summary(base: float) -> str:
-    """Compact one-liner for the plan header; details live in the Paces tab."""
+    """Compact one-liner for the plan header: which race every rendered pace
+    comes from. Recomputed per request, so a new race updates it instantly."""
+    r = analyze.anchor_race()
     v = vdotmod.vdot_from_race(10000, base * 10)
-    return f"VDOT {v:.1f} · base {pctmod.fmt(base)}"
+    if r:
+        return (f"{r['event']} {r['dt'].date().isoformat()} · "
+                f"VDOT {r['vdot']:.1f} · base {pctmod.fmt(base)}")
+    return f"inferred from training · VDOT {v:.1f} · base {pctmod.fmt(base)}"
 
 
 def anchor_rows(base: float, source: str) -> list:
     """Key-value rows for the anchor table in the Paces tab."""
-    races = [r for r in analyze.config_races()
-             if (datetime.now() - r["dt"]).days <= analyze.RECENT_RACE_DAYS]
-    if races:
-        best = max(races, key=lambda r: r["vdot"])
+    best = analyze.anchor_race()
+    if best:
         rows = [
             ("Anchor race", best["event"]),
             ("Date", best["dt"].date().isoformat()),
@@ -76,6 +79,17 @@ def anchor_rows(base: float, source: str) -> list:
         rows = [("Source", source)]
     rows.append(("Base pace (100%)", pctmod.fmt(base)))
     return [{"k": k, "v": val} for k, val in rows]
+
+
+def anchor_entry(base: float, **extra) -> dict:
+    """One point on the anchor timeline: the full zone table for `base` plus
+    whatever identifies the anchor (race fields or an inferred flag)."""
+    return {
+        "base_pace": pctmod.fmt(base),
+        "base_pace_s_per_km": round(base, 1),
+        "legend": build_legend(base),
+        **extra,
+    }
 
 
 # steady-day duration estimate: makes the time cost of the prescribed km
@@ -96,13 +110,11 @@ def duration_estimate(day: dict, base: float) -> str | None:
 
 def reeval_info() -> dict:
     """When should paces be re-evaluated? Anchor race + 4 weeks (article rule)."""
-    races = [r for r in analyze.config_races()
-             if (datetime.now() - r["dt"]).days <= analyze.RECENT_RACE_DAYS]
-    if not races:
+    best = analyze.anchor_race()
+    if not best:
         return {"status": "overdue", "anchor_date": None, "age_days": None,
                 "message": "No race within 90 days - anchor is inferred. "
                            "Race a parkrun/5k time trial to set a solid anchor."}
-    best = max(races, key=lambda r: r["vdot"])
     anchor_date = best["dt"].date()
     age = (date.today() - anchor_date).days
     due_date = anchor_date + timedelta(days=28)
@@ -230,10 +242,22 @@ def api_plan(name=None):
             "days": days,
         })
 
+    # goal-race selector on the Plan page: every upcoming result-less race
+    # is a candidate; goal_set says whether Ben pinned one explicitly
+    cfgall = json.loads((BASE_DIR / "config.json").read_text(encoding="utf-8"))
+    today_iso = date.today().isoformat()
+    options = [{"date": r["date"], "event": r.get("event"),
+                "distance_m": r.get("distance_m")}
+               for r in cfgall.get("races", [])
+               if r.get("date", "") >= today_iso
+               and not str(r.get("time") or "").strip()]
+
     return jsonify({
         "name": p["name"],
         "config": planmod.plan_config(),
         "next_race": planmod.next_race(),
+        "race_options": options,
+        "goal_set": bool((cfgall.get("plan") or {}).get("goal_race")),
         "start_date": p["start_date"],
         "tips": tips,
         "anchor": source,
@@ -268,6 +292,46 @@ def api_paces_refresh():
     out = pctmod.HISTORY_DIR / f"percent-{date.today().isoformat()}.json"
     out.write_text(json.dumps(snap, indent=2), encoding="utf-8")
     return jsonify({"ok": True, "anchor": source})
+
+
+@app.route("/api/paces/history")
+def api_paces_history():
+    """One entry per past race in config.json (the settings race history),
+    each carrying the zone table anchored to THAT race - computed on the fly
+    from the fixed formula, nothing read from data/. The race the live plan
+    actually anchors to (best VDOT within 90 days) is flagged `current`;
+    with no recent race the timeline ends on an inferred-fitness entry."""
+    races = analyze.config_races()
+    cur = analyze.anchor_race()
+    # the active plan's week template, re-paced per anchor below - so paging
+    # anchors shows exactly what each one does to the double-threshold week
+    tmpl_days = (planmod.load_plan().get("week_template") or {}).get("days") or {}
+
+    def week_at(base: float) -> list:
+        return [{"day": d, "text": planmod.describe(tmpl_days[d], base)}
+                for d in planmod.DAY_ORDER if d in tmpl_days]
+
+    entries = []
+    for r in races:
+        t10 = vdotmod.race_time(r["vdot"], 10000)
+        entries.append(anchor_entry(
+            t10 / 10,
+            when=r["dt"].date().isoformat(),
+            race=r["event"],
+            result=f"{int(r['distance_m'])}m in {vdotmod.time_str(r['time_s'])}",
+            vdot=f"{r['vdot']:.1f}",
+            tenk=vdotmod.time_str(t10),
+            inferred=False,
+            current=bool(cur) and r["dt"] == cur["dt"] and r["event"] == cur["event"],
+            week=week_at(t10 / 10),
+        ))
+    if cur is None:
+        base, source = planmod.current_anchor()
+        entries.append(anchor_entry(
+            base, when=date.today().isoformat(), race=None, result=None,
+            vdot=None, tenk=None, inferred=True, current=True, raw=source,
+            week=week_at(base)))
+    return jsonify({"entries": entries})
 
 
 @app.route("/api/stats")
@@ -608,6 +672,14 @@ def api_plan_config():
                 plan["end_date"] = date.fromisoformat(req["end_date"]).isoformat()
             else:
                 plan.pop("end_date", None)
+        if "goal_race" in req:  # from the settings Races card's goal buttons
+            if req["goal_race"]:
+                d = date.fromisoformat(req["goal_race"]).isoformat()
+                if not any(r.get("date") == d for r in cfg.get("races", [])):
+                    raise ValueError(f"no race dated {d}")
+                plan["goal_race"] = d
+            else:
+                plan.pop("goal_race", None)  # back to auto-detect
     except (ValueError, TypeError) as e:
         return jsonify({"ok": False, "error": f"bad request: {e}"}), 400
     if plan.get("end_date") and plan["end_date"] < plan.get("start_date", ""):
@@ -638,11 +710,11 @@ def api_races():
     cfg = json.loads(path.read_text(encoding="utf-8"))
     if request.method == "GET":
         today = date.today().isoformat()
-        future = [r["date"] for r in cfg.get("races", []) if r.get("date", "") >= today]
-        nxt = min(future) if future else None
-        recent = [r for r in analyze.config_races()
-                  if (datetime.now() - r["dt"]).days <= analyze.RECENT_RACE_DAYS]
-        anchor = max(recent, key=lambda r: r["vdot"])["date"] if recent else None
+        goal = planmod.next_race()  # explicit goal_race or auto-detected
+        goal_date = goal["date"] if goal else None
+        explicit = bool((cfg.get("plan") or {}).get("goal_race"))
+        cur = analyze.anchor_race()
+        anchor = cur["date"] if cur else None
         out = []
         for r in cfg.get("races", []):
             e = dict(r)
@@ -652,8 +724,9 @@ def api_races():
                         float(r["distance_m"]), vdotmod.parse_time(str(r["time"]))), 1)
                 except (KeyError, ValueError, TypeError):
                     pass
-            e["upcoming"] = r.get("date", "") >= today
-            e["next"] = r.get("date") == nxt and not str(r.get("time") or "").strip()
+            e["upcoming"] = r.get("date", "") >= today and not str(r.get("time") or "").strip()
+            e["next"] = r.get("date") == goal_date and not str(r.get("time") or "").strip()
+            e["goal_set"] = e["next"] and explicit
             e["anchor"] = bool(anchor) and r.get("date") == anchor and bool(e.get("vdot"))
             out.append(e)
         return jsonify({"races": out})
@@ -679,6 +752,55 @@ def api_races():
     cfg["races"] = races
     path.write_text(dump_config(cfg), encoding="utf-8")
     return jsonify({"ok": True, "races": races})
+
+
+@app.route("/api/race", methods=["POST"])
+def api_race_add():
+    """Quick-add an upcoming race from the Plan page's goal selector and
+    make it the goal - no settings round-trip. Results still land via the
+    settings races table."""
+    req = request.get_json(force=True)
+    path = BASE_DIR / "config.json"
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        entry = {
+            "event": str(req.get("event") or "").strip() or "Race",
+            "date": date.fromisoformat(str(req["date"]).strip()).isoformat(),
+            "distance_m": int(req["distance_m"]),
+            "time": "",
+        }
+        if entry["date"] < date.today().isoformat():
+            raise ValueError("goal race date is in the past")
+        if entry["distance_m"] <= 0:
+            raise ValueError("bad distance")
+        if any(r.get("date") == entry["date"] for r in cfg.get("races", [])):
+            raise ValueError(f"a race on {entry['date']} already exists")
+    except (KeyError, ValueError, TypeError) as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    cfg.setdefault("races", []).append(entry)
+    cfg["races"].sort(key=lambda r: r["date"])
+    cfg.setdefault("plan", {})["goal_race"] = entry["date"]
+    path.write_text(dump_config(cfg), encoding="utf-8")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/race/<rdate>", methods=["DELETE"])
+def api_race_delete(rdate):
+    """Remove an upcoming race by date - result-less entries only (finished
+    races are pace-anchor history; delete those in settings if ever needed).
+    Clears goal_race if it pointed here, falling back to auto-detect."""
+    path = BASE_DIR / "config.json"
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    races = cfg.get("races", [])
+    keep = [r for r in races
+            if r.get("date") != rdate or str(r.get("time") or "").strip()]
+    if len(keep) == len(races):
+        return jsonify({"ok": False, "error": "no upcoming race on that date"}), 404
+    cfg["races"] = keep
+    if (cfg.get("plan") or {}).get("goal_race") == rdate:
+        cfg["plan"].pop("goal_race", None)
+    path.write_text(dump_config(cfg), encoding="utf-8")
+    return jsonify({"ok": True})
 
 
 @app.route("/api/day", methods=["POST"])
