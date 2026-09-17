@@ -248,6 +248,65 @@
   a.gwl:hover { text-decoration: underline; }
   #gwtbl td.aname { color: #9aa4b0; font-size: 0.84em; }
 
+  /* drinks tab: carbs/h x fluid/h x sodium/L -> bottle recipe */
+  #drkbody { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+  .drkctl { flex: 1 1 380px; min-width: 320px; padding: 14px 18px 16px; }
+  .drkout { flex: 1 1 340px; min-width: 300px; padding: 14px 18px 16px; position: sticky; top: 64px; }
+  .drow { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid #21262e; flex-wrap: wrap; }
+  .drow:first-child { border-top: none; padding-top: 2px; }
+  .dlab { color: #9aa4b0; font-size: 0.8em; width: 74px; flex: none; }
+  .dval { margin-left: auto; color: #7fd1ff; font-weight: 600; font-size: 0.9em; white-space: nowrap; }
+  .dhint { flex-basis: 100%; color: #6b7684; font-size: 0.76em; padding-left: 84px; margin-top: -3px; }
+  .seg { display: flex; gap: 4px; flex-wrap: wrap; }
+  .seg button { background: #1e242c; color: #cfd6dd; border: 1px solid #2c333d; border-radius: 6px; padding: 4px 11px; cursor: pointer; font-size: 0.82em; }
+  .seg button.sel { background: #4da3ff; color: #0b0e12; border-color: #4da3ff; font-weight: 600; }
+  .drow input[type=range] { flex: 1; min-width: 120px; accent-color: #4da3ff; }
+  .drow select, .drow input[type=number] { background: #1e242c; border: 1px solid #2c333d; color: #e6e6e6; border-radius: 6px; padding: 4px 8px; font-size: 0.82em; }
+  .drow input[type=number] { width: 58px; }
+  .autochip { background: #2b3a4d; color: #9fc1e8; border-radius: 4px; padding: 0 6px; font-size: 0.72em; font-weight: 600; cursor: pointer; }
+  .autochip.off { background: #2a2313; color: #fbbf24; }
+  .drkhead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .drkhead b { font-size: 1.05em; }
+  .drkhead .sub2 { color: #9aa4b0; font-size: 0.82em; }
+  .rline { display: flex; align-items: baseline; gap: 10px; padding: 7px 0; border-top: 1px solid #21262e; }
+  .rline:first-of-type { border-top: none; }
+  .rqty { font-size: 1.55em; font-weight: 700; color: #e6edf3; min-width: 110px; white-space: nowrap; }
+  .rqty.per { color: #8a93a0; font-size: 1.15em; min-width: 82px; }
+  .rcols { display: flex; gap: 10px; color: #6b7684; font-size: 0.7em; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 0 2px; }
+  .rcols span:first-child { min-width: 110px; }
+  .rqty small { font-size: 0.55em; color: #9aa4b0; font-weight: 500; margin-left: 2px; }
+  .rwhat { color: #cfd6dd; font-size: 0.9em; }
+  .rwhat .dim { color: #6b7684; font-size: 0.86em; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0 10px; }
+  .chip { background: #16283b; color: #7fd1ff; border: 1px solid #2c4a6e; border-radius: 4px; padding: 1px 8px; font-size: 0.78em; font-weight: 600; white-space: nowrap; }
+  .chip.warn { background: #2a2313; color: #fbbf24; border-color: #6b5518; }
+  .chip.bad { background: #2a1515; color: #fca5a5; border-color: #7a2e2e; }
+  .chip.ok { background: #12241a; color: #86efac; border-color: #1f4d33; }
+  .gauge { position: relative; height: 10px; background: #12161b; border-radius: 5px; margin: 4px 0 2px; }
+  .gauge .zone { position: absolute; top: 0; bottom: 0; background: #1f4d33; border-radius: 5px; }
+  .gauge .pin { position: absolute; top: -3px; width: 4px; height: 16px; background: #4da3ff; border-radius: 2px; }
+  .gauge .pin.bad { background: #f87171; }
+  .glab { display: flex; justify-content: space-between; color: #6b7684; font-size: 0.72em; }
+  .rctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 7px; }
+  .rctl .dlab2 { color: #cfd6dd; font-size: 0.86em; margin-left: 2px; }
+  .seg.sm button { padding: 3px 11px; font-size: 0.82em; }
+  .drknote { color: #9aa4b0; font-size: 0.8em; line-height: 1.5; margin-top: 12px; padding-top: 10px; border-top: 1px solid #21262e; }
+  .drknote b { color: #cfd6dd; }
+  .drkwarn { background: #2a2313; border: 1px solid #6b5518; color: #fbbf24; border-radius: 8px; padding: 8px 12px; font-size: 0.84em; margin-top: 10px; line-height: 1.45; }
+  .sweat { color: #9aa4b0; font-size: 0.8em; }
+  .sweat summary { cursor: pointer; padding: 8px 0 2px; }
+  .sweat .drow { border-top: none; padding: 6px 0; }
+  .sweat .dlab { width: auto; }
+  #refcard { max-width: 780px; padding: 14px 20px 16px; margin-bottom: 14px; }
+  #refcard table { width: 100%; }
+  #refcard th { padding: 4px 8px; }
+  #refcard td b { color: #7fd1ff; }
+  #refcard td { font-size: 0.86em; padding: 6px 8px; }
+  #refcard ul { margin: 6px 0 0; padding-left: 18px; color: #cfd6dd; font-size: 0.88em; line-height: 1.6; }
+  #refcard li::marker { color: #4da3ff; }
+  #refcard .src { color: #6b7684; font-size: 0.76em; margin-top: 10px; line-height: 1.5; }
+  @media (max-width: 700px) { .drkout { position: static; } .dhint { padding-left: 0; } }
+
   /* tips modal */
   .modalbg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 20; }
   .modal { background: #1a1f26; border: 1px solid #2c333d; border-radius: 12px; padding: 18px 22px; max-width: 540px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
@@ -285,6 +344,7 @@
   <button id="tab-stats" onclick="setView('stats')">Stats</button>
   <button id="tab-acts" onclick="setView('acts')">Activities</button>
   <button id="tab-gws" onclick="setView('gws')">Workouts</button>
+  <button id="tab-drk" onclick="setView('drk')">Drinks</button>
   <button id="syncbtn" onclick="doSync()">Sync Garmin</button>
   <button id="setbtn" onclick="openSettings()" title="race history — the pace anchor data">⚙</button>
 </div>
@@ -396,6 +456,84 @@
   </div>
   <div class="actsum" id="gwsum"></div>
   <div class="card actcard"><table id="gwtbl"></table></div>
+</div>
+<div id="drkview" style="display:none">
+  <div class="statshead">
+    <div class="pager" style="margin:0">
+      <button id="dk-mix" onclick="setDrk('mix')">Mix</button>
+      <button id="dk-ref" onclick="setDrk('ref')">Reference</button>
+    </div>
+  </div>
+  <div id="drkmix">
+    <div id="drkbody">
+      <div class="card drkctl">
+        <div class="drow"><span class="dlab">Session</span><div class="seg" id="dk-sess"></div>
+          <span class="dhint" id="dk-sessh"></span></div>
+        <div class="drow" id="row-dur"><span class="dlab">Duration</span>
+          <input type="range" id="dk-dur" min="30" max="150" step="15" oninput="drkSet('dur', +this.value)">
+          <span class="dval" id="dk-durv"></span></div>
+        <div class="drow" id="row-heat"><span class="dlab">Heat</span>
+          <input type="range" id="dk-heat" min="0" max="3" step="1" oninput="drkSet('heat', +this.value)">
+          <span class="dval" id="dk-heatv"></span>
+          <span class="dhint" id="dk-heath"></span></div>
+        <div class="drow" id="row-fluid"><span class="dlab">Fluid</span>
+          <input type="range" id="dk-fluid" min="300" max="1200" step="50" oninput="drkSet('fluid', +this.value)">
+          <span class="dval" id="dk-fluidv"></span>
+          <span class="autochip" id="dk-fluidauto" onclick="drkSet('fluid', null)" title="back to the heat preset">auto</span>
+          <span class="dhint" id="dk-fluidh"></span></div>
+        <div class="drow"><span class="dlab">Carbs</span>
+          <input type="range" id="dk-carb" min="0" max="90" step="5" oninput="drkSet('carb', +this.value)">
+          <span class="dval" id="dk-carbv"></span>
+          <span class="autochip" id="dk-carbauto" onclick="drkSet('carb', null)" title="back to the preset for this session + duration">auto</span>
+          <span class="dhint" id="dk-carbh"></span></div>
+        <div class="drow" id="row-bot"><span class="dlab">Bottles</span>
+          <div class="seg" id="dk-bot"></div>
+          <span class="dval" id="dk-botv"></span>
+          <span class="autochip" id="dk-botauto" onclick="drkSet('bottles', null)" title="back to auto: as few bottles as fit in 750 mL each">auto</span></div>
+        <details class="sweat" id="dk-sweatbox">
+          <summary>Sweat rate — weigh in before and after one run</summary>
+          <div class="drow">
+            <span class="dlab">before</span><input type="number" id="sw-pre" step="0.1" placeholder="kg" oninput="drkSweat()">
+            <span class="dlab">after</span><input type="number" id="sw-post" step="0.1" placeholder="kg" oninput="drkSweat()">
+            <span class="dlab">drank</span><input type="number" id="sw-drank" step="50" placeholder="mL" oninput="drkSweat()">
+            <span class="dlab">min</span><input type="number" id="sw-min" step="5" placeholder="min" oninput="drkSweat()">
+          </div>
+          <div class="drow"><span id="sw-out"></span>
+            <button class="wbtn" id="sw-use" onclick="drkUseSweat()" style="display:none">use as fluid/h</button></div>
+        </details>
+      </div>
+      <div class="card drkout" id="dk-out"></div>
+    </div>
+  </div>
+  <div id="drkref" style="display:none">
+    <div class="card" id="refcard">
+      <div class="alhead">Your week <span class="sub2">— when the drink actually earns its place</span></div>
+      <table>
+        <tr><th>session</th><th>during</th><th>around it</th></tr>
+        <tr><td>Easy 45–75 min, 60–70% MHR</td><td>water, or nothing</td><td style="color:#9aa4b0">—</td></tr>
+        <tr><td>Easy 90 min (Sunday)</td><td>water; 20–30 g carbs optional if you started hungry</td><td style="color:#9aa4b0">—</td></tr>
+        <tr><td>Threshold AM / PM (10×3, 5×6)</td><td>nothing needed; a weak sweet sip is optional — carbs in the mouth help at this intensity even unswallowed</td><td>eat properly between AM and PM; 5 LOT 100 Fruity gummies (~25 g) 5-15 min before the PM if you're flat</td></tr>
+        <tr><td>10k race</td><td>water at aid stations; 0 gels is normal, 1 is fine</td><td>proper pre-race meal; one N8 before the start does what a mid-race gel would</td></tr>
+        <tr><td>Rare 2 h easy</td><td><b>25–30 g/h</b> — the one run that needs fuel</td><td>1 N8 over 2 h is 12 g/h, which is why you finish depleted</td></tr>
+      </table>
+      <div class="alhead" style="margin-top:14px">Rules</div>
+      <ul>
+        <li><b>Hotter, sweatier</b> → more <b>water</b> first, then more <b>salt</b>. Same sugar. Never all three at once.</li>
+        <li><b>Longer</b> → more <b>sugar</b>, tied to the run's length, not to how much you sweat.</li>
+        <li><b>Concentration</b>: at or under 6% carbs in the heat, 8% in aircon. Above that it sits in your stomach. Need more than the drink can carry? Gels chased with water.</li>
+        <li><b>Sodium</b>: 450–850 mg per litre in heat, upper half if you're a salty sweater (white streaks on cap or shirt). 1 g table salt ≈ 390 mg sodium. Plain water when there's no sugar in it — salty water alone is unpleasant.</li>
+        <li><b>Fluid</b>: about three quarters of your sweat rate, cap ~1 L/h. Losing up to 2% body weight in a run is fine.</li>
+        <li><b>Treadmill without a fan</b> is a hot run: no airflow, sweat doesn't evaporate.</li>
+        <li><b>Pre-threshold snack</b>: chocolate bars carry fat that slows gastric emptying. Fine 1–2 h before; in the last 15 min it's LOT 100 gummies — 5 Fruity = 25.5 g carbs, zero fat, no weighing (the "Before threshold" preset). Sour+ is ~27% denser and a touch cheaper per serving — 6 pieces ≈ 27 g (about 4.8 g per piece); sodium in both is negligible.</li>
+        <li><b>Table sugar</b> is half glucose, half fructose — the two-transporter mix. Plenty up to 60 g/h; maltodextrin only matters for concentrated race gels.</li>
+        <li><b>Prep</b>: sugar + salt dry in the bottle the night before; cordial, water, shake in the morning.</li>
+      </ul>
+      <div class="alhead" style="margin-top:14px">Cordials <span class="sub2">— flavour only, the sugar is the fuel</span></div>
+      <table id="cordtbl"></table>
+      <div class="src">The mixer assumes a typical 55 g carbs per 100 mL of cordial; the two brands are close enough that it doesn't change the recipe. N8 Refuel: 25 g carbs, 40 mg sodium, ~RM8.50 per gel.<br>
+      Sources: Jeukendrup 2014, <i>A step towards personalized sports nutrition: carbohydrate intake during exercise</i> (Sports Med) · Sawka et al. 2007, ACSM position stand <i>Exercise and fluid replacement</i> · Thomas, Erdman &amp; Burke 2016, ACSM/AND/DC joint position <i>Nutrition and athletic performance</i> · Carter et al. 2004, <i>The effect of carbohydrate mouth rinse on 1-h cycle time trial performance</i> (MSSE).</div>
+    </div>
+  </div>
 </div>
 <div id="tipsbg" class="modalbg" onclick="closeTips()" style="display:none">
   <div class="modal" onclick="event.stopPropagation()">
@@ -1066,11 +1204,13 @@ function setView(v) {
   document.getElementById("statsview").style.display = v === "stats" ? "" : "none";
   document.getElementById("actview").style.display = v === "acts" ? "" : "none";
   document.getElementById("gwsview").style.display = v === "gws" ? "" : "none";
+  document.getElementById("drkview").style.display = v === "drk" ? "" : "none";
   document.getElementById("setview").style.display = v === "settings" ? "" : "none";
   document.getElementById("tab-plan").className = v === "plan" ? "sel" : "";
   document.getElementById("tab-stats").className = v === "stats" ? "sel" : "";
   document.getElementById("tab-acts").className = v === "acts" ? "sel" : "";
   document.getElementById("tab-gws").className = v === "gws" ? "sel" : "";
+  document.getElementById("tab-drk").className = v === "drk" ? "sel" : "";
   document.getElementById("setbtn").className = v === "settings" ? "sel" : "";
   if (v === "stats") {
     setStat(stat);
@@ -1079,6 +1219,7 @@ function setView(v) {
   }
   if (v === "acts" && !ACTS) loadActs();
   if (v === "gws") { if (!GWS) loadGws(); if (!BANK) loadBank(); }
+  if (v === "drk") renderDrk();
   if (v === "settings" && !RACES) loadRaces();
 }
 
@@ -1188,6 +1329,183 @@ function doRecalc() {
     setTimeout(() => { b.innerHTML = "&#8635; Recalculate paces"; b.disabled = false; }, 2000);
   }).catch(() => { b.innerHTML = "&#8635; Recalculate paces"; b.disabled = false; });
 }
+
+/* ---- drinks tab: one mix for the whole run - carbs for the run x fluid/h x sodium/L ---- */
+const HEAT = [
+  { lab: "Aircon / fan", desc: "treadmill with a strong fan, aircon gym", fluid: 500, na: 450 },
+  { lab: "Warm", desc: "early morning or evening outdoors", fluid: 650, na: 550 },
+  { lab: "Hot & humid", desc: "typical Malaysian day, or a treadmill without a fan", fluid: 800, na: 700 },
+  { lab: "Midday sun", desc: "full sun, 33°C+, heavy sweat", fluid: 1000, na: 850 },
+];
+// carb presets are grams for the WHOLE run - Ben thinks in totals, and nothing he does needs g/h maths
+const SESS = {
+  easy: { lab: "Easy", carb: d => d <= 90 ? 0 : Math.round(d / 60 * 25 / 5) * 5,
+    hint: d => d <= 75 ? "60-70% MHR — water is enough, or nothing" : d <= 90 ? "water; 20-30 g is optional if you started hungry" : "the one run that needs fuel: ~25 g/h, so you don't finish depleted" },
+  thresh: { lab: "Threshold", carb: d => 0,
+    hint: d => "nothing needed for 10x3 / 5x6 — 15-25 g makes a sweet sip (carbs in the mouth help at this intensity even unswallowed), optional" },
+  race: { lab: "10k race", carb: d => 0, hint: d => "water at the aid stations; 0 gels is normal, 1 is fine — a pre-start N8 does the same job" },
+  pre: { lab: "Before threshold", carb: d => 25, vol: 150,
+    hint: d => "LOT 100 gummies 5-15 min before the PM session — fast carbs with zero fat, unlike the Snickers" },
+};
+const CORDIALS = [
+  { k: "lotus", lab: "Lotus's Orange", price: 9.85, ml: 2000, carb: 55, note: "cheapest, citrus — the everyday one" },
+  { k: "nutrifres", lab: "Nutrifres Lemon / Calamansi", price: 13, ml: 1000, carb: 60, note: "sourer — cuts the sugar on the long hot run" },
+];
+const TASTE = [{ lab: "light", ml: 25 }, { lab: "normal", ml: 40 }, { lab: "strong", ml: 60 }];  // mL cordial per litre
+const CORD_DENS = 55;   // g carbs per 100 mL, typical for Malaysian cordials - the label decides, this is only the estimate
+const BOTTLE_MAX = 750; // auto bottle count: as few as fit this size
+const N8_CARB = 25, NA_PER_G_SALT = 393;
+const GUMMY = { carb: 5.1, g: 7, sourCarbPer100: 93, sourG: 4.8 };  // LOT 100 Fruity per piece (label); Sour+ ~4.8 g/piece from the 50 pcs = 240 g pack
+
+const DRK = Object.assign(
+  { sess: "easy", dur: 75, heat: 2, carb: null, fluid: null, bottles: null, taste: 1, sw: {}, sub: "mix" },
+  JSON.parse(localStorage.getItem("drinks") || "{}"));
+if (!SESS[DRK.sess]) DRK.sess = "easy";
+function drkSave() { localStorage.setItem("drinks", JSON.stringify(DRK)); }
+function drkSet(k, v) {
+  if (k === "sess") DRK.carb = null;          // a new session type goes back to its preset
+  DRK[k] = v; drkSave(); renderDrk();
+}
+function setDrk(s) { DRK.sub = s; drkSave(); renderDrk(); }
+function fmtDur(m) { return m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? String(m % 60).padStart(2, "0") : ""}` : `${m} min`; }
+
+function drkCalc() {
+  const s = SESS[DRK.sess], h = HEAT[DRK.heat], hours = DRK.dur / 60, pre = !!s.vol;
+  const carb = DRK.carb === null ? s.carb(DRK.dur) : DRK.carb;
+  const fluidH = DRK.fluid === null ? h.fluid : DRK.fluid;
+  const vol = pre ? s.vol : Math.round(fluidH * hours / 50) * 50;    // total fluid for the run
+  const n = pre ? 1 : (DRK.bottles || Math.max(1, Math.ceil(vol / BOTTLE_MAX)));
+  const cord = Math.round(TASTE[DRK.taste].ml * vol / 1000 / 5) * 5;
+  const cordCarb = cord * CORD_DENS / 100;
+  const sugar = Math.max(0, Math.round(carb - cordCarb));
+  const totCarb = Math.round(sugar + cordCarb);
+  const na = pre ? 0 : h.na;
+  const salt = Math.round(na * vol / 1000 / NA_PER_G_SALT * 10) / 10;
+  const per = { vol: Math.round(vol / n / 10) * 10, sugar: Math.round(sugar / n), cord: Math.round(cord / n / 5) * 5,
+                salt: Math.round(salt / n * 10) / 10 };
+  const pct = totCarb / vol * 100;
+  const limit = pre ? 12 : (DRK.heat >= 2 ? 6 : 8);
+  let split = null;
+  if (pct > limit + 0.05 && !pre) {
+    const drinkCarb = Math.round(limit * 10 * vol / 1000);
+    const needVol = Math.round(totCarb / limit * 100 / 50) * 50;
+    split = { drinkCarb, gels: Math.ceil((carb - drinkCarb) / N8_CARB), needVol, needH: Math.round(needVol / hours) };
+  }
+  return { carb, fluidH, vol, n, per, cord, cordCarb, sugar, salt, totCarb, na, pct, limit, split, pre };
+}
+
+function tsp(g) {  // nearest eighth of a teaspoon (6 g salt per tsp)
+  const e = Math.round(g / 6 * 8);
+  if (e <= 0) return "";
+  const map = { 1: "⅛", 2: "¼", 3: "⅜", 4: "½", 5: "⅝", 6: "¾", 7: "⅞", 8: "1" };
+  return map[e] ? `≈ ${map[e]} tsp` : `≈ ${(e / 8).toFixed(1)} tsp`;
+}
+
+function renderDrk() {
+  document.getElementById("dk-mix").className = DRK.sub === "mix" ? "sel" : "";
+  document.getElementById("dk-ref").className = DRK.sub === "ref" ? "sel" : "";
+  document.getElementById("drkmix").style.display = DRK.sub === "mix" ? "" : "none";
+  document.getElementById("drkref").style.display = DRK.sub === "ref" ? "" : "none";
+  if (DRK.sub === "ref") { renderCordTbl(); return; }
+  const r = drkCalc(), s = SESS[DRK.sess], h = HEAT[DRK.heat];
+  document.getElementById("dk-sess").innerHTML = Object.entries(SESS).map(([k, x]) =>
+    `<button class="${DRK.sess === k ? "sel" : ""}" onclick="drkSet('sess','${k}')">${x.lab}</button>`).join("");
+  document.getElementById("dk-sessh").textContent = s.hint(DRK.dur);
+  ["dur", "heat", "fluid", "bot"].forEach(k => document.getElementById("row-" + k).style.display = r.pre ? "none" : "");
+  document.getElementById("dk-bot").innerHTML = [1, 2, 3, 4].map(b =>
+    `<button class="${r.n === b ? "sel" : ""}" onclick="drkSet('bottles',${b})">${b}</button>`).join("");
+  document.getElementById("dk-botv").textContent = `${r.per.vol} mL each`;
+  document.getElementById("dk-botauto").className = "autochip" + (DRK.bottles === null ? "" : " off");
+  document.getElementById("dk-botauto").textContent = DRK.bottles === null ? "auto" : "manual · reset";
+  document.getElementById("dk-dur").value = DRK.dur;
+  document.getElementById("dk-durv").textContent = fmtDur(DRK.dur);
+  document.getElementById("dk-heat").value = DRK.heat;
+  document.getElementById("dk-heatv").textContent = h.lab;
+  document.getElementById("dk-heath").textContent = h.desc;
+  document.getElementById("dk-fluid").value = r.fluidH;
+  document.getElementById("dk-fluidv").textContent = `${r.fluidH} mL/h`;
+  document.getElementById("dk-fluidauto").className = "autochip" + (DRK.fluid === null ? "" : " off");
+  document.getElementById("dk-fluidauto").textContent = DRK.fluid === null ? "auto" : "manual · reset";
+  document.getElementById("dk-fluidh").textContent = DRK.fluid === null
+    ? `heat preset · ${h.na} mg sodium/L`
+    : `your figure · ${h.na} mg sodium/L still follows the heat setting`;
+  document.getElementById("dk-carb").value = r.carb;
+  document.getElementById("dk-carbv").textContent = `${r.carb} g`;
+  document.getElementById("dk-carbauto").className = "autochip" + (DRK.carb === null ? "" : " off");
+  document.getElementById("dk-carbauto").textContent = DRK.carb === null ? "auto" : "manual · reset";
+  document.getElementById("dk-carbh").textContent = r.pre ? "5.1 g per gummy" : `for the whole run${r.carb ? ` · ${Math.round(r.carb / (DRK.dur / 60))} g/h · ≈ ${(r.carb / N8_CARB).toFixed(1)} N8` : ""}`;
+
+  // recipe card: TOTALS are the numbers; with several bottles a dimmer "each" column sits beside them
+  const g0 = v => String(v).replace(/\.0$/, "");
+  const multi = r.n > 1;
+  const head = `<div class="drkhead"><b>${r.vol} mL</b><span class="sub2">${fmtDur(DRK.dur)} ${s.lab.toLowerCase()} · ${h.lab.toLowerCase()}${multi ? ` · ${r.n} bottles` : ""}</span></div>`
+    + (multi ? `<div class="rcols"><span>total</span><span>each of ${r.n}</span></div>` : "");
+  const line = (tot, each, what, dim) => `<div class="rline"><span class="rqty">${tot}</span>${multi ? `<span class="rqty per">${each}</span>` : ""}<span class="rwhat">${what}${dim ? `<br><span class="dim">${dim}</span>` : ""}</span></div>`;
+  if (r.pre) {   // gummies, not a drink
+    const n = Math.max(1, Math.round(r.carb / GUMMY.carb)), got = Math.round(n * GUMMY.carb);
+    const sour = Math.round(r.carb / GUMMY.sourCarbPer100 * 100), sourN = Math.round(sour / GUMMY.sourG);
+    document.getElementById("dk-out").innerHTML = `<div class="drkhead"><b>${n} gummies</b><span class="sub2">5-15 min before the PM session</span></div>
+      <div class="rline"><span class="rqty">${n}<small>pcs</small></span><span class="rwhat">LOT 100 Fruity gummies<br><span class="dim">${got} g carbs · ${GUMMY.carb} g each, ${n * GUMMY.g} g of candy</span></span></div>
+      <div class="rline"><span class="rqty">~${sourN}<small>pcs</small></span><span class="rwhat">or LOT 100 Sour+ (${sour} g)<br><span class="dim">denser, ${GUMMY.sourCarbPer100} g carbs/100 g · ~${GUMMY.sourG} g per piece from the 50 pcs ≈ 240 g pack, so counting is fine</span></span></div>
+      <div class="rline"><span class="rqty">150<small>mL</small></span><span class="rwhat">water<br><span class="dim">a glass, nothing more</span></span></div>
+      <div class="chips"><span class="chip">${got} g carbs</span><span class="chip">≈ ${(got / N8_CARB).toFixed(1)} N8</span><span class="chip">~${n * 7} mg Na — negligible</span></div>
+      <div class="drknote">Sodium from gummies doesn't count for hydration; salt comes from the drink or the next meal. Contains sorbitol — 5 is fine, half the bag isn't.</div>`;
+    drkSweat(true); return;
+  }
+  if (r.carb === 0) {
+    document.getElementById("dk-out").innerHTML = head
+      + line(`${r.vol}<small>mL</small>`, `${r.per.vol}<small>mL</small>`, "plain water", "nothing to mix — sodium comes back with the next meal")
+      + `<div class="drknote">Want a sweet sip anyway? Slide carbs to 15-25 g.</div>`;
+    drkSweat(true); return;
+  }
+  const pctCls = r.pct > r.limit + 0.05 ? "bad" : "ok";
+  const flav = `<div class="rctl"><span class="dlab2">flavour</span><div class="seg sm">${TASTE.map((t, i) =>
+    `<button class="${DRK.taste === i ? "sel" : ""}" onclick="drkSet('taste',${i})" title="${t.ml} mL per litre of drink">${t.lab}</button>`).join("")}</div></div>`;
+  const sugarNote = r.sugar ? "" : (r.totCarb > r.carb + 2 ? `none — the cordial alone brings ${r.totCarb} g, over the ${r.carb} g target; go lighter on flavour` : "none — the cordial covers it");
+  const lines = line(`${r.sugar}<small>g</small>`, `${r.per.sugar}<small>g</small>`, "white table sugar", sugarNote)
+    + line(`${r.cord}<small>mL</small>`, `${r.per.cord}<small>mL</small>`, "cordial", `~${Math.round(r.cordCarb)} g of the carbs come from it (typical cordial, ${CORD_DENS} g per 100 mL — check your label); the sugar covers the rest` + flav)
+    + line(`${g0(r.salt.toFixed(1))}<small>g</small>`, `${g0(r.per.salt.toFixed(1))}<small>g</small>`, "table salt", `${tsp(r.salt)} · ${Math.round(r.na * r.vol / 1000)} mg sodium`)
+    + line(`${r.vol}<small>mL</small>`, `${r.per.vol}<small>mL</small>`, "water to the line", "shake, fridge");
+  const gmax = 12;
+  const gauge = `<div class="gauge"><div class="zone" style="left:0;width:${r.limit / gmax * 100}%"></div>
+    <div class="pin ${pctCls === "bad" ? "bad" : ""}" style="left:calc(${Math.min(r.pct, gmax) / gmax * 100}% - 2px)"></div></div>
+    <div class="glab"><span>0%</span><span>${r.limit}% limit for ${h.lab.toLowerCase()}</span><span>12%</span></div>`;
+  let warn = "";
+  if (r.split) warn = `<div class="drkwarn">${r.pct.toFixed(1)}% is syrupy — over the ${r.limit}% limit. Mix ${r.split.drinkCarb} g in the drink and take <b>${r.split.gels} N8</b> with it${
+    r.split.needH <= 1000 ? `, or make it ${r.split.needVol} mL (${r.split.needH} mL/h) to get all ${r.carb} g in at ${r.limit}%` : " — diluting it fully would mean drinking more than the gut absorbs"}.</div>`;
+  else if (r.fluidH >= 1000) warn = `<div class="drkwarn">Around 1 L/h is the most the gut absorbs; past that you slosh, not hydrate.</div>`;
+  document.getElementById("dk-out").innerHTML = head + lines + `
+    <div class="chips">
+      <span class="chip">${r.totCarb} g carbs</span>
+      <span class="chip ${pctCls}">${r.pct.toFixed(1)}%</span>
+      <span class="chip">${r.na} mg Na/L</span>
+      <span class="chip">≈ ${(r.totCarb / N8_CARB).toFixed(1)} N8</span>
+    </div>
+    ${gauge}${warn}
+    <div class="drknote"><b>Night before:</b> sugar + salt dry in the bottle${multi ? "s" : ""}. <b>Morning:</b> cordial, water, shake.</div>`;
+  drkSweat(true);
+}
+
+function renderCordTbl() {
+  const rows = CORDIALS.map(c => `<tr><td>${c.lab}</td><td class="n">RM${c.price.toFixed(2)} / ${c.ml >= 1000 ? c.ml / 1000 + " L" : c.ml + " mL"}</td>
+    <td class="n zpace">RM${(c.price / c.ml * 1000).toFixed(2)}/L</td><td style="color:#9aa4b0">${c.note}</td></tr>`).join("");
+  document.getElementById("cordtbl").innerHTML = `<tr><th>cordial</th><th class="n">price</th><th class="n">per litre</th><th>note</th></tr>${rows}`;
+}
+
+// sweat rate: (pre - post) kg + drank -> L/h; suggest ~75% replacement, capped at 1 L/h
+function drkSweat(restore) {
+  const ids = ["pre", "post", "drank", "min"];
+  if (restore) ids.forEach(k => { const el = document.getElementById("sw-" + k); if (DRK.sw[k] != null && el.value === "") el.value = DRK.sw[k]; });
+  const v = {}; ids.forEach(k => { const x = parseFloat(document.getElementById("sw-" + k).value); v[k] = isNaN(x) ? null : x; });
+  DRK.sw = v; drkSave();
+  const out = document.getElementById("sw-out"), use = document.getElementById("sw-use");
+  if (!(v.pre > 0 && v.post > 0 && v.min > 0)) { out.textContent = ""; use.style.display = "none"; return; }
+  const lossMl = (v.pre - v.post) * 1000 + (v.drank || 0), rate = lossMl / (v.min / 60);
+  const rec = Math.max(300, Math.min(1000, Math.round(rate * 0.75 / 50) * 50));
+  out.innerHTML = `sweat rate <b style="color:#7fd1ff">${(rate / 1000).toFixed(2)} L/h</b> · lost ${((v.pre - v.post) / v.pre * 100).toFixed(1)}% body weight → drink ~<b style="color:#7fd1ff">${rec} mL/h</b>`;
+  use.style.display = ""; use.dataset.rec = rec;
+}
+function drkUseSweat() { drkSet("fluid", +document.getElementById("sw-use").dataset.rec); }
 
 function doSync() {
   const btn = document.getElementById("syncbtn"), out = document.getElementById("syncout");

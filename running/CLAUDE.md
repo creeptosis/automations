@@ -163,7 +163,29 @@ When Ben asks for a check-in / coach review:
   The Activities tab lists every synced run (sortable, filterable by
   outdoor/indoor, period, effort, name) with an effort score = Banister
   TRIMP (duration x HR-reserve), bucketed easy->max by quantiles of Ben's
-  own run history.
+  own run history. The Drinks tab is a pure front-end mixer for Ben's
+  homemade sports drink (table sugar = fuel, table salt = sodium, cordial =
+  flavour). Deliberately minimal, shaped by Ben's pushback: session preset
+  (Easy / Threshold / 10k race / Before threshold) + duration set the carbs
+  for the WHOLE run in grams (not g/h — most of his runs need zero: easy
+  <=90 min and threshold sessions default to plain water, only the rare 2 h
+  easy run gets ~25 g/h, "Before threshold" is LOT 100 gummies — 5.1 g
+  carbs per Fruity piece, so 25 g = 5 pieces, with a Sour+ equivalent in grams
+  and pieces (93 g/100 g, ~4.8 g per piece) — plus a glass of water, no drink), a heat slider sets fluid/h and sodium/L (treadmill without a fan =
+  hot), total fluid = fluid/h x duration, and a Bottles control (auto = as
+  few as fit 750 mL, or 1-4) divides it into equal bottles. The recipe card
+  shows TOTALS as the primary numbers, with a dimmer "each of N" column
+  beside them when there are several bottles — Ben measures totals, and
+  never wants to see "2.5 bottles".
+  Cordial is a fixed flavour amount (light/normal/strong = 25/40/60 mL per
+  litre, toggled on the card's cordial line) assumed at 55 g carbs/100 mL;
+  the card states how many grams come from it and the sugar is trimmed to
+  match. No brand selector, no editable density (Ben found both pointless).
+  Concentration gauge <=6% in heat / 8% aircon; over the limit
+  it proposes drink + N8 gels. Inputs, per-cordial carb density and the
+  sweat-rate weigh-in persist in localStorage — no API. Reference subpage:
+  his week's fueling table, rules, cordial table, sources (Jeukendrup 2014,
+  ACSM 2007/2016, Carter 2004 mouth rinse).
 - Pace re-anchoring cadence (per Full-Spectrum article): every 2-4 weeks, or
   after any race; judge from how 90-105% workouts feel. The plan renders from
   the live anchor, so adding a race to config.json updates every workout pace.
