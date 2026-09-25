@@ -10,6 +10,8 @@ so the process stays alive and can be quit from the tray menu.
 """
 
 import os
+import shutil
+import subprocess
 import sys
 import threading
 import webbrowser
@@ -37,6 +39,22 @@ def make_icon():
     return img
 
 
+def open_claude_terminal():
+    """Open a terminal at the running directory with Claude Code started.
+
+    Windows Terminal (wt.exe) when installed, otherwise a plain cmd window.
+    cmd /k keeps the window open once claude exits.
+    """
+    wt = shutil.which("wt.exe")
+    if wt:
+        cmd = [wt, "-d", str(BASE_DIR), "cmd", "/k", "claude"]
+        flags = 0
+    else:
+        cmd = ["cmd", "/k", "claude"]
+        flags = subprocess.CREATE_NEW_CONSOLE
+    subprocess.Popen(cmd, cwd=str(BASE_DIR), creationflags=flags)
+
+
 def main():
     threading.Thread(
         target=lambda: app.run(host="127.0.0.1", port=5001,
@@ -52,6 +70,7 @@ def main():
         menu=pystray.Menu(
             pystray.MenuItem("Open training plan", lambda: webbrowser.open(URL),
                              default=True),
+            pystray.MenuItem("Open Claude terminal", lambda: open_claude_terminal()),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Quit", lambda i: i.stop()),
         ),
