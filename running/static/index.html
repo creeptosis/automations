@@ -973,9 +973,11 @@ function renderMileage() {
 /* ---- activities tab ---- */
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const fmtDate = d => `${parseInt(d.slice(8), 10)} ${MONTHS[parseInt(d.slice(5, 7), 10) - 1]} ${d.slice(2, 4)}`;
-function fmtDur(m) {
-  const t = Math.round(m), h = Math.floor(t / 60);
-  return h ? `${h}h ${String(t % 60).padStart(2, "0")}` : `${t} min`;
+function fmtClock(m) {                      // 1:32:36 / 48:30 — real elapsed time
+  const t = Math.round(m * 60), h = Math.floor(t / 3600);
+  const mm = Math.floor(t % 3600 / 60), ss = t % 60;
+  return h ? `${h}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`
+           : `${mm}:${String(ss).padStart(2, "0")}`;
 }
 
 const ACOLS = [["date", "date"], ["name", "run"], ["km", "dist"], ["duration_min", "time"],
@@ -1030,7 +1032,7 @@ function renderActs() {
   const okm = out.reduce((s, a) => s + a.km, 0);
   const omin = out.reduce((s, a) => s + (a.duration_min || 0), 0);
   document.getElementById("actsum").textContent = rows.length
-    ? `${rows.length} runs · ${Math.round(km)} km · ${fmtDur(min)}` +
+    ? `${rows.length} runs · ${Math.round(km)} km · ${fmtMins(min)}` +
       (okm ? ` · avg pace ${fmtPace(omin * 60 / okm)}${af.surface === "in" ? "" : af.surface === "all" ? " (outdoor)" : ""}` : "")
     : "no runs match these filters";
 
@@ -1049,7 +1051,7 @@ function renderActs() {
       <td>${fmtDate(a.date)}</td>
       <td class="aname">${esc(a.name)}${a.type !== "running" ? `<span class="typechip">${a.type.replace("_running", "").replace("_", " ")}</span>` : ""}</td>
       <td class="n">${a.km ? a.km.toFixed(1) : "–"}</td>
-      <td class="n">${a.duration_min ? fmtDur(a.duration_min) : "–"}</td>
+      <td class="n">${a.duration_min ? fmtClock(a.duration_min) : "–"}</td>
       <td class="n${a.indoor ? " z" : ""}"${a.indoor ? ' title="treadmill pace — unreliable"' : ""}>${a.pace_s ? fmtPace(a.pace_s) : "–"}</td>
       <td class="n">${a.avg_hr ?? "–"}</td>
       <td class="n">${a.pct_max ? a.pct_max + "%" : "–"}</td>
@@ -1160,7 +1162,7 @@ function renderGws() {
         <td><a class="gwl" href="https://connect.garmin.com/app/workout/${w.id}?workoutType=${w.sport || "running"}" target="_blank">${esc(w.name)}</a>
           ${w.sport && w.sport !== "running" ? `<span class="typechip">${esc(w.sport)}</span>` : ""}</td>
         <td class="aname">${esc(w.description)}</td>
-        <td class="n">${w.est_min ? fmtDur(w.est_min) : "–"}</td>
+        <td class="n">${w.est_min ? fmtMins(w.est_min) : "–"}</td>
         <td class="n">${w.created ? fmtDate(w.created) : "–"}</td>
         <td class="n">${w.scheduled ? fmtDate(w.scheduled.slice(0, 10)) +
           (w.scheduled.length > 10 ? " " + w.scheduled.slice(11).toUpperCase() : "") : "–"}</td>
@@ -1367,7 +1369,10 @@ function drkSet(k, v) {
   DRK[k] = v; drkSave(); renderDrk();
 }
 function setDrk(s) { DRK.sub = s; drkSave(); renderDrk(); }
-function fmtDur(m) { return m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? String(m % 60).padStart(2, "0") : ""}` : `${m} min`; }
+function fmtMins(m) {                      // rounded label for planned/estimated durations
+  const t = Math.round(m);
+  return t >= 60 ? `${Math.floor(t / 60)}h${t % 60 ? String(t % 60).padStart(2, "0") : ""}` : `${t} min`;
+}
 
 function drkCalc() {
   const s = SESS[DRK.sess], h = HEAT[DRK.heat], hours = DRK.dur / 60, pre = !!s.vol;
@@ -1418,7 +1423,7 @@ function renderDrk() {
   document.getElementById("dk-botauto").className = "autochip" + (DRK.bottles === null ? "" : " off");
   document.getElementById("dk-botauto").textContent = DRK.bottles === null ? "auto" : "manual · reset";
   document.getElementById("dk-dur").value = DRK.dur;
-  document.getElementById("dk-durv").textContent = fmtDur(DRK.dur);
+  document.getElementById("dk-durv").textContent = fmtMins(DRK.dur);
   document.getElementById("dk-heat").value = DRK.heat;
   document.getElementById("dk-heatv").textContent = h.lab;
   document.getElementById("dk-heath").textContent = h.desc;
@@ -1438,7 +1443,7 @@ function renderDrk() {
   // recipe card: TOTALS are the numbers; with several bottles a dimmer "each" column sits beside them
   const g0 = v => String(v).replace(/\.0$/, "");
   const multi = r.n > 1;
-  const head = `<div class="drkhead"><b>${r.vol} mL</b><span class="sub2">${fmtDur(DRK.dur)} ${s.lab.toLowerCase()} · ${h.lab.toLowerCase()}${multi ? ` · ${r.n} bottles` : ""}</span></div>`
+  const head = `<div class="drkhead"><b>${r.vol} mL</b><span class="sub2">${fmtMins(DRK.dur)} ${s.lab.toLowerCase()} · ${h.lab.toLowerCase()}${multi ? ` · ${r.n} bottles` : ""}</span></div>`
     + (multi ? `<div class="rcols"><span>total</span><span>each of ${r.n}</span></div>` : "");
   const line = (tot, each, what, dim) => `<div class="rline"><span class="rqty">${tot}</span>${multi ? `<span class="rqty per">${each}</span>` : ""}<span class="rwhat">${what}${dim ? `<br><span class="dim">${dim}</span>` : ""}</span></div>`;
   if (r.pre) {   // gummies, not a drink
